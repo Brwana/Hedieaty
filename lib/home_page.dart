@@ -159,12 +159,41 @@ class _HomePageState extends State<HomePage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
+              onPressed: (){Navigator.pushNamed(context, '/EventList');},
+              child: Text(
+                "Show Event List", style: TextStyle(color: Color(
+                  0xFFB03565)),),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: (){Navigator.pushNamed(context, '/GiftList');},
+              child: Text(
+                "Show Gift List", style: TextStyle(color: Color(
+                  0xFFB03565)),),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: (){Navigator.pushNamed(context, '/GiftDetailsList');},
+              child: Text(
+                "Show Gift Details List", style: TextStyle(color: Color(
+                  0xFFB03565)),),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
               onPressed: _createNewEventOrList,
               child: Text(
                 "Create Your Own Event/List", style: TextStyle(color: Color(
                   0xFFB03565)),),
             ),
           ),
+
         ],
       ),
     );
