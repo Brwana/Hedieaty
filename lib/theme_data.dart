@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 
 class ThemeClass{
   static ThemeData lightTheme = ThemeData(
-    appBarTheme: AppBarTheme(color: Colors.pink,titleTextStyle: TextStyle(fontSize: 45,fontFamily:"Lobster" ),centerTitle: true),
+    appBarTheme: AppBarTheme(color: Color(0xFFDE1369),titleTextStyle: TextStyle(fontSize: 45,fontFamily:"Lobster" ),centerTitle: true
+  ,
+
+    ),
+
 
   );
 }
