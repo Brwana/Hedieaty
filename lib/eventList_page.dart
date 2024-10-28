@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:hedieaty/theme_data.dart';
 class EventListPage extends StatefulWidget {
   const EventListPage({super.key});
 

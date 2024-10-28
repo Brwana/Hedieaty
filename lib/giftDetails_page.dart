@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io'; // Required for the File class
+import 'package:hedieaty/theme_data.dart';
+import 'dart:io';
 
 class GiftDetailsPage extends StatefulWidget {
   const GiftDetailsPage({super.key});
@@ -16,14 +16,13 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   String giftCategory = 'Electronics';
   double giftPrice = 0.0;
   String giftStatus = 'Available';
-  XFile? giftImage;
+  File? giftImage;
+  bool isPledged = false;
 
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  void _selectLocalImage() {
+    const imagePath = 'path/to/local/image.png';
     setState(() {
-      giftImage = pickedFile;
+      giftImage = File(imagePath);
     });
   }
 
@@ -44,7 +43,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Gift Details"),
+        title: Text("Gift Details"),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
@@ -53,7 +52,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(30.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -62,6 +61,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Gift Name',
+                  labelStyle: TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40)
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -70,10 +70,13 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                   return null;
                 },
                 onSaved: (value) => giftName = value!,
+                enabled: !isPledged,
               ),
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Description',
+                    labelStyle:
+                    TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40)
                 ),
                 maxLines: 3,
                 validator: (value) {
@@ -83,19 +86,29 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                   return null;
                 },
                 onSaved: (value) => giftDescription = value!,
+                enabled: !isPledged,
               ),
               DropdownButtonFormField<String>(
                 value: giftCategory,
                 decoration: const InputDecoration(
+
                   labelText: 'Category',
+                    labelStyle:
+                    TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'Electronics', child: Text('Electronics')),
-                  DropdownMenuItem(value: 'Books', child: Text('Books')),
-                  DropdownMenuItem(value: 'Clothing', child: Text('Clothing')),
-                  DropdownMenuItem(value: 'Accessories', child: Text('Accessories')),
+                  DropdownMenuItem(value: 'Electronics', child: Text('Electronics',
+                    style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 20),)),
+                  DropdownMenuItem(value: 'Books', child: Text('Books',
+                    style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 20),)),
+                  DropdownMenuItem(value: 'Clothing', child: Text('Clothing',
+                    style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 20),)),
+                  DropdownMenuItem(value: 'Accessories', child: Text('Accessories',
+                    style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 20),)),
                 ],
-                onChanged: (value) {
+                onChanged: isPledged
+                    ? null
+                    : (value) {
                   if (value != null) {
                     setState(() {
                       giftCategory = value;
@@ -106,6 +119,8 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Price',
+                  labelStyle:
+                  TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40),
                   prefixText: '\$',
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -120,22 +135,27 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                   return null;
                 },
                 onSaved: (value) => giftPrice = double.parse(value!),
+                enabled: !isPledged,
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Status:", style: TextStyle(fontSize: 18)),
+                  const Text("Status:", style: TextStyle(fontSize: 40,fontFamily: "Caveat", color: Color(0xFFB03565)),)
+      ,
                   DropdownButton<String>(
                     value: giftStatus,
                     items: const [
-                      DropdownMenuItem(value: 'Available', child: Text('Available')),
-                      DropdownMenuItem(value: 'Pledged', child: Text('Pledged')),
+                      DropdownMenuItem(value: 'Available', child: Text('Available',
+                        style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40),)),
+                      DropdownMenuItem(value: 'Pledged', child: Text('Pledged',
+                        style:TextStyle(fontFamily: "Caveat", color: Color(0xFFB03565),fontSize: 40),)),
                     ],
                     onChanged: (value) {
                       if (value != null) {
                         setState(() {
                           giftStatus = value;
+                          isPledged = value == 'Pledged';
                         });
                       }
                     },
@@ -144,7 +164,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
               ),
               const SizedBox(height: 16.0),
               GestureDetector(
-                onTap: _pickImage,
+                onTap: _selectLocalImage,
                 child: Container(
                   height: 150,
                   decoration: BoxDecoration(
@@ -152,9 +172,12 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: giftImage == null
-                      ? const Center(child: Text("Tap to upload image"))
+                      ? const Center(child: Text("Tap to upload image",style: TextStyle(color: Color(0xFFB03565),
+                  )
+                    ,)
+                    ,)
                       : Image.file(
-                    File(giftImage!.path),
+                    giftImage!,
                     fit: BoxFit.cover,
                   ),
                 ),

@@ -53,7 +53,7 @@ class _GiftListPageState extends State<GiftListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Gift List"),
+        title: const Text("Gift List",style: TextStyle(color: Colors.white,fontFamily: "Lobster"),),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
