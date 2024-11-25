@@ -10,6 +10,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
+  void _handleMenuSelection(String value) {
+    switch (value) {
+      case 'Show Event List':
+        Navigator.pushNamed(context, '/EventList');
+        break;
+      case 'Show Gift List':
+        Navigator.pushNamed(context, '/GiftList');
+        break;
+      case 'Show Gift Details List':
+        Navigator.pushNamed(context, '/GiftDetailsList');
+        break;
+      case 'Create Your Own Event/List':
+        _createNewEventOrList();
+        break;
+    }
+  }
+
   final List<Map<String, dynamic>> profiles = [
     {
       'name': 'Meiada',
@@ -81,21 +99,37 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text("Hedieaty"),
         actions: [
-
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0), // Add small padding to the right
-            child:   IconButton(
-                icon: Icon(Icons.account_circle, color: Colors.white),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/Profile');
-                } // Profile icon// Replace with the function to open the profile
-            ),
-
+          IconButton(
+            icon: Icon(Icons.account_circle, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/Profile');
+            },
           ),
-
-
+          PopupMenuButton<String>(
+            onSelected: _handleMenuSelection,
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'Show Event List',
+                child: Text('Show Event List'),
+              ),
+              PopupMenuItem(
+                value: 'Show Gift List',
+                child: Text('Show Gift List'),
+              ),
+              PopupMenuItem(
+                value: 'Show Gift Details List',
+                child: Text('Show Gift Details List'),
+              ),
+              PopupMenuItem(
+                value: 'Create Your Own Event/List',
+                child: Text('Create Your Own Event/List'),
+              ),
+            ],
+            icon: Icon(Icons.more_vert, color: Colors.white),
+          ),
         ],
       ),
+
       body: Column(
         children: [
           Padding(
@@ -113,11 +147,12 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
+                    onChanged: _filterFriends,
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.person_add, color: Colors.pink),
-                  onPressed: () {},
+                  onPressed: _addFriend,
                 ),
               ],
             ),
@@ -136,64 +171,29 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => _navigateToGiftList(profile['name']),
                     child: Text(
                       profile['name'],
-                      style: TextStyle(fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(
-                              0xFFB03565)),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFB03565),
+                      ),
                     ),
                   ),
                   subtitle: Row(
                     children: [
                       Icon(Icons.event, color: Color(0xFFB03565)),
                       SizedBox(width: 5),
-                      Text(profile['eventCount'] > 0
-                          ? "Upcoming Events: ${profile['eventCount']}"
-                          : "No Upcoming Events", style: TextStyle(color: Color(
-                          0xFFB03565)),),
+                      Text(
+                        profile['eventCount'] > 0
+                            ? "Upcoming Events: ${profile['eventCount']}"
+                            : "No Upcoming Events",
+                        style: TextStyle(color: Color(0xFFB03565)),
+                      ),
                     ],
                   ),
                 );
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: (){Navigator.pushNamed(context, '/EventList');},
-              child: Text(
-                "Show Event List", style: TextStyle(color: Color(
-                  0xFFB03565)),),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: (){Navigator.pushNamed(context, '/GiftList');},
-              child: Text(
-                "Show Gift List", style: TextStyle(color: Color(
-                  0xFFB03565)),),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: (){Navigator.pushNamed(context, '/GiftDetailsList');},
-              child: Text(
-                "Show Gift Details List", style: TextStyle(color: Color(
-                  0xFFB03565)),),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _createNewEventOrList,
-              child: Text(
-                "Create Your Own Event/List", style: TextStyle(color: Color(
-                  0xFFB03565)),),
-            ),
-          ),
-
         ],
       ),
     );

@@ -5,9 +5,14 @@ import 'package:hedieaty/profile_page.dart';
 import 'package:hedieaty/eventList_page.dart';
 import 'package:hedieaty/giftList_page.dart';
 import 'package:hedieaty/giftDetails_page.dart';
-
-void main() {
-  runApp(const MyApp());
+import 'package:hedieaty/splash_screen.dart';
+import 'package:hedieaty/signup_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -25,11 +30,12 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeClass.lightTheme,
       initialRoute: '/Home',
       routes: {
-        "/Home":(context)=> HomePage(),
+        "/Home":(context)=> SplashScreen(),
         '/Profile':(context)=> MyProfile(),
         '/EventList':(context)=>EventListPage(),
         '/GiftList':(context)=>GiftListPage(),
-        '/GiftDetailsList':(context)=>GiftDetailsPage()
+        '/GiftDetailsList':(context)=>GiftDetailsPage(),
+        '/signup':(context)=>SignUpPage()
       },
       home: Scaffold(
         appBar: AppBar(
