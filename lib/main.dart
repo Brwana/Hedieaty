@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/home_page.dart';
+import 'package:hedieaty/login_page.dart';
 import 'package:hedieaty/theme_data.dart';
 import 'package:hedieaty/profile_page.dart';
 import 'package:hedieaty/eventList_page.dart';
@@ -9,9 +10,13 @@ import 'package:hedieaty/splash_screen.dart';
 import 'package:hedieaty/signup_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MyApp());
 }
 
@@ -35,7 +40,8 @@ class _MyAppState extends State<MyApp> {
         '/EventList':(context)=>EventListPage(),
         '/GiftList':(context)=>GiftListPage(),
         '/GiftDetailsList':(context)=>GiftDetailsPage(),
-        '/signup':(context)=>SignUpPage()
+        '/signup':(context)=>SignUpPage(),
+        '/login':(context)=>LoginPage(),
       },
       home: Scaffold(
         appBar: AppBar(
