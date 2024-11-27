@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
             print('User Data: $userData'); // Use this data in your app
 
             // Navigate to the home page
-            Navigator.pushNamed(context, '/Profile');
+            Navigator.pushNamed(context, '/home');
           } else {
             print('User document does not exist in Firestore.');
           }

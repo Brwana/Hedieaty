@@ -12,31 +12,8 @@ class _SignUpPageState extends State<SignUpPage> {
   String fullName = '';
   String email = '';
   String password = '';
-
-  // Function to save user data to Firestore
-  Future<void> _saveUserToFirestore(String fullName, String email) async {
-    try {
-      CollectionReference users = FirebaseFirestore.instance.collection('users');
-      await users.add({
-        'fullName': fullName,
-        'email': email,
-        // Note: Storing plain passwords is NOT recommended. Use Firebase Authentication for user management.
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      print("User added successfully!");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User registered successfully!')),
-      );
-    } catch (e) {
-      print("Error adding user: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to register user!')),
-      );
-    }
-  }
-
-
-
+  String phoneNumber = '';
+  String profileImage='';// Add a phone number field
 
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
@@ -55,7 +32,9 @@ class _SignUpPageState extends State<SignUpPage> {
           await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
             'fullName': fullName,
             'email': email,
+            'phoneNumber': phoneNumber, // Save phone number
             'createdAt': FieldValue.serverTimestamp(),
+            'profileImage':'asset/default_profile.jpg',
           });
 
           // Show success message
@@ -68,6 +47,8 @@ class _SignUpPageState extends State<SignUpPage> {
             fullName = '';
             email = '';
             password = '';
+            phoneNumber = '';
+            profileImage='';// Clear phone number field
           });
 
           // Navigate to the home page
@@ -91,17 +72,15 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign Up'),
-        toolbarHeight: 70.0, // Adjust the height of the appbar
+        automaticallyImplyLeading: false, // Removes the back arrow
+        toolbarHeight: 70.0, // Adjust the height of the app bar
       ),
-      body: SingleChildScrollView( // Wrap the body with SingleChildScrollView
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -110,7 +89,6 @@ class _SignUpPageState extends State<SignUpPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // CircleAvatar for the profile icon
                 Center(
                   child: CircleAvatar(
                     radius: 50,
@@ -188,12 +166,31 @@ class _SignUpPageState extends State<SignUpPage> {
                     password = value!;
                   },
                 ),
+                SizedBox(height: 16),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(value)) {
+                      return 'Please enter a valid phone number';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    phoneNumber = value!;
+                  },
+                ),
                 SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _handleSignUp,
                   child: Text(
                     'Sign Up',
-                    style: TextStyle(fontSize: 18,color: Colors.pink),
+                    style: TextStyle(fontSize: 18, color: Colors.pink),
                   ),
                 ),
                 SizedBox(height: 16),
@@ -226,5 +223,4 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
   }
-
 }
