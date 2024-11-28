@@ -8,11 +8,11 @@ import 'package:hedieaty/giftList_page.dart';
 import 'package:hedieaty/giftDetails_page.dart';
 import 'package:hedieaty/splash_screen.dart';
 import 'package:hedieaty/signup_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:hedieaty/createEvent.dart';
 import 'package:hedieaty/editEvent_page.dart';
+import 'package:hedieaty/editGift_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,11 +42,12 @@ class _MyAppState extends State<MyApp> {
         '/Profile':(context)=> MyProfile(),
         '/EventList':(context)=>EventListPage(),
         '/GiftList':(context)=>GiftListPage(),
-        '/GiftDetailsList':(context)=>GiftDetailsPage(),
+        '/GiftDetailsList':(context)=>CreateGift(eventId: '',userId:''),
         '/signup':(context)=>SignUpPage(),
         '/login':(context)=>LoginPage(),
         '/createEvent':(context)=>CreateEvent(),
         '/editevent':(context)=>EditEvent(eventId: '',),
+        '/editgift':(context)=>EditGift(eventId: '',giftId: '',),
       },
       home: Scaffold(
         appBar: AppBar(

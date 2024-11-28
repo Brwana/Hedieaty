@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class CreateGift extends StatefulWidget {
-  final String eventId; // Event ID under which the gift will be created
-  final String userId;  // User ID associated with the gift creation
-
-  // Constructor to accept eventId and userId
-  const CreateGift({Key? key, required this.eventId, required this.userId}) : super(key: key);
+class EditGift extends StatefulWidget {
+  final String eventId; // Event ID to identify the event
+  final String giftId;
+  // Gift ID to identify the gift
+  const EditGift({Key? key,required this.giftId ,required this.eventId}) : super(key: key);
 
   @override
-  State<CreateGift> createState() => _CreateGiftState();
+  State<EditGift> createState() => _EditGiftState();
 }
 
-
-class _CreateGiftState extends State<CreateGift> {
+class _EditGiftState extends State<EditGift> {
   final _formKey = GlobalKey<FormState>();
   String giftName = '';
   String giftDescription = '';
   double giftPrice = 0.0;
   String? selectedCategory;
+  bool isLoading = true;
 
   final List<String> categories = [
     'Electronics',
@@ -31,47 +31,74 @@ class _CreateGiftState extends State<CreateGift> {
   @override
   void initState() {
     super.initState();
-    print('User ID: ${widget.userId}');
-    print('Event ID: ${widget.eventId}');
+    _loadGiftDetails();
   }
 
+  /// Load the gift details from Firestore
+  Future<void> _loadGiftDetails() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final giftRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('events')
+          .doc(widget.eventId) // Event ID
+          .collection('gifts')
+          .doc(widget.giftId); // Gift ID
 
-  Future<void> _createGift() async {
-    if (widget.userId.isEmpty || widget.eventId.isEmpty) {
+      final giftSnapshot = await giftRef.get();
+      if (giftSnapshot.exists) {
+        final giftData = giftSnapshot.data()!;
+        setState(() {
+          giftName = giftData['name'] ?? '';
+          giftDescription = giftData['description'] ?? '';
+          giftPrice = giftData['price']?.toDouble() ?? 0.0;
+          selectedCategory = giftData['category'] ?? categories.first;
+          isLoading = false;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gift not found.')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User ID or Event ID is invalid!')),
+        const SnackBar(content: Text('Failed to load gift details.')),
       );
-      return;
+      Navigator.pop(context);
     }
+  }
 
+  Future<void> _updateGift() async {
     if (_formKey.currentState!.validate() && selectedCategory != null) {
       _formKey.currentState!.save();
 
       try {
-        // Access gifts through the userId -> events -> eventId -> gifts structure
-        final giftsRef = FirebaseFirestore.instance
-            .collection('users') // Reference the users collection
-            .doc(widget.userId)  // User document (userId)
-            .collection('events') // Events subcollection under the user
-            .doc(widget.eventId)  // Event document (eventId)
-            .collection('gifts'); // Gifts subcollection under the event
+        final userId = FirebaseAuth.instance.currentUser!.uid;
+        final giftRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('events')
+            .doc(widget.eventId) // Event ID
+            .collection('gifts')
+            .doc(widget.giftId); // Gift ID
 
-        await giftsRef.add({
+        await giftRef.update({
           'name': giftName,
           'description': giftDescription,
           'price': giftPrice,
           'category': selectedCategory,
-          'createdBy': widget.userId, // Track the user who created the gift
-          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gift added successfully!')),
+          const SnackBar(content: Text('Gift updated successfully!')),
         );
         Navigator.pop(context); // Navigate back to the previous screen
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add gift.')),
+          const SnackBar(content: Text('Failed to update gift.')),
         );
         print('Error: $e');
       }
@@ -84,9 +111,19 @@ class _CreateGiftState extends State<CreateGift> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit Gift'),
+          backgroundColor: const Color(0xFFE91E63),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Gift'),
+        title: const Text('Edit Gift'),
         backgroundColor: const Color(0xFFE91E63),
       ),
       body: LayoutBuilder(
@@ -104,6 +141,7 @@ class _CreateGiftState extends State<CreateGift> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
+                        initialValue: giftName,
                         decoration: InputDecoration(
                           labelText: 'Gift Name',
                           border: OutlineInputBorder(
@@ -122,12 +160,14 @@ class _CreateGiftState extends State<CreateGift> {
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
+                        initialValue: giftDescription,
                         decoration: InputDecoration(
                           labelText: 'Description',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
+                        maxLines: 3,
                         onSaved: (value) {
                           giftDescription = value!.trim();
                         },
@@ -140,6 +180,7 @@ class _CreateGiftState extends State<CreateGift> {
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
+                        initialValue: giftPrice.toString(),
                         decoration: InputDecoration(
                           labelText: 'Price',
                           prefixText: '\$',
@@ -182,7 +223,7 @@ class _CreateGiftState extends State<CreateGift> {
                         }).toList(),
                         onChanged: (value) {
                           setState(() {
-                            selectedCategory = value;
+                            selectedCategory = value!;
                           });
                         },
                         validator: (value) {
@@ -196,12 +237,12 @@ class _CreateGiftState extends State<CreateGift> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _createGift,
+                          onPressed: _updateGift,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE91E63),
                           ),
                           child: const Text(
-                            'Add Gift',
+                            'Update Gift',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,

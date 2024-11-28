@@ -72,13 +72,20 @@ class _EventListPageState extends State<EventListPage> {
     );
   }
 
-  void _navigateToGiftListPage(Map<String, dynamic> eventData) {
+  void _navigateToGiftListPage(String eventID) {
+    print("eventlist");
+    print(eventID);
+    print(userId);
     Navigator.pushNamed(
       context,
       '/GiftList',
-      arguments: eventData,
+      arguments: {
+        'eventId': eventID,
+        'userId': userId,
+      },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +102,7 @@ class _EventListPageState extends State<EventListPage> {
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body:StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
@@ -118,7 +125,7 @@ class _EventListPageState extends State<EventListPage> {
               ),
             );
           }
-
+          SizedBox(height: 15,);
           final events = snapshot.data!.docs;
 
           return Flexible(
@@ -180,7 +187,7 @@ class _EventListPageState extends State<EventListPage> {
                         ),
                       ],
                     ),
-                    onTap: () => _navigateToGiftListPage(eventData),
+                    onTap: () => _navigateToGiftListPage(eventId),
                   ),
                 );
               },
