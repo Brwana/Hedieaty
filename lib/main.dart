@@ -11,6 +11,8 @@ import 'package:hedieaty/signup_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:hedieaty/createEvent.dart';
+import 'package:hedieaty/editEvent_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +45,8 @@ class _MyAppState extends State<MyApp> {
         '/GiftDetailsList':(context)=>GiftDetailsPage(),
         '/signup':(context)=>SignUpPage(),
         '/login':(context)=>LoginPage(),
+        '/createEvent':(context)=>CreateEvent(),
+        '/editevent':(context)=>EditEvent(eventId: '',),
       },
       home: Scaffold(
         appBar: AppBar(

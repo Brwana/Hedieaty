@@ -36,6 +36,7 @@ class _HomePageState extends State<HomePage> {
         Navigator.pushNamed(context, '/GiftDetailsList');
         break;
       case 'Create Your Own Event/List':
+        Navigator.pushNamed(context, '/createEvent');
 
         break;
     }
