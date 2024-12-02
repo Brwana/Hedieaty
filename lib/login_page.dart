@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Firebase Authentication package
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -11,22 +12,17 @@ class _LoginPageState extends State<LoginPage> {
   String email = '';
   String password = '';
 
-
-
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
       try {
-        // Sign in the user
         UserCredential userCredential = await FirebaseAuth.instance
             .signInWithEmailAndPassword(email: email, password: password);
 
-        // Get the currently signed-in user
         User? user = userCredential.user;
 
         if (user != null) {
-          // Retrieve user details from Firestore
           DocumentSnapshot userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
@@ -34,9 +30,8 @@ class _LoginPageState extends State<LoginPage> {
 
           if (userDoc.exists) {
             Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-            print('User Data: $userData'); // Use this data in your app
+            print('User Data: $userData');
 
-            // Navigate to the home page
             Navigator.pushNamed(context, '/home');
           } else {
             print('User document does not exist in Firestore.');
@@ -60,15 +55,14 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Log In'),
-        toolbarHeight: 70.0, // Adjust the height of the AppBar to reduce space
+        toolbarHeight: 70.0,
       ),
-      body: SingleChildScrollView( // Wrap the entire body in SingleChildScrollView to prevent overflow
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -77,14 +71,13 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // CircleAvatar for login image
                 Center(
                   child: CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.blueAccent.shade100,
                     child: ClipOval(
                       child: Image.asset(
-                        'asset/signup.jpg', // Path to your login image
+                        'asset/signup.jpg',
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -95,17 +88,20 @@ class _LoginPageState extends State<LoginPage> {
                   'Welcome Back',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 34,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.pink,
                     fontFamily: "Caveat",
                   ),
                 ),
-                SizedBox(height: 40),
+                SizedBox(height: 30),
                 TextFormField(
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    prefixIcon: Icon(Icons.email, color: Colors.pink),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -125,7 +121,10 @@ class _LoginPageState extends State<LoginPage> {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    prefixIcon: Icon(Icons.lock, color: Colors.pink),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -137,12 +136,18 @@ class _LoginPageState extends State<LoginPage> {
                     password = value!;
                   },
                 ),
-                SizedBox(height: 32),
+                SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                  ),
                   child: Text(
                     'Log In',
-                    style: TextStyle(fontSize: 18, color: Colors.pink),
+                    style: TextStyle(fontSize: 18,color: Colors.pink),
                   ),
                 ),
                 SizedBox(height: 16),

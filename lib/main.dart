@@ -14,6 +14,10 @@ import 'package:hedieaty/createEvent.dart';
 import 'package:hedieaty/editEvent_page.dart';
 import 'package:hedieaty/editGift_page.dart';
 
+import 'friend_Event.dart';
+import 'friend_gifts.dart';
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -38,7 +42,7 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/Splash',
       routes: {
         "/Splash":(context)=> SplashScreen(),
-        "/home":(context)=>HomePage(),
+        '/home':(context)=>HomePage(),
         '/Profile':(context)=> MyProfile(),
         '/EventList':(context)=>EventListPage(),
         '/GiftList':(context)=>GiftListPage(),
@@ -48,6 +52,8 @@ class _MyAppState extends State<MyApp> {
         '/createEvent':(context)=>CreateEvent(),
         '/editevent':(context)=>EditEvent(eventId: '',),
         '/editgift':(context)=>EditGift(eventId: '',giftId: '',),
+        '/friend_event':(context)=>FriendEventPage(),
+        '/friend_gifts':(context)=>FriendGiftListPage(),
       },
       home: Scaffold(
         appBar: AppBar(

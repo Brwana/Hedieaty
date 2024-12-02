@@ -24,6 +24,17 @@ class _HomePageState extends State<HomePage> {
         .collection('friends');
     _fetchFriends();
   }
+  Future<void> _signout() async {
+    try {
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      print('Error during logout: $e');
+      _showErrorDialog('Failed to log out. Please try again.');
+    }
+  }
+
+
   void _handleMenuSelection(String value) {
     switch (value) {
       case 'Show Event List':
@@ -32,33 +43,28 @@ class _HomePageState extends State<HomePage> {
       case 'Show Gift List':
         Navigator.pushNamed(context, '/GiftList');
         break;
-      case 'Show Gift Details List':
-        Navigator.pushNamed(context, '/GiftDetailsList');
-        break;
       case 'Create Your Own Event/List':
         Navigator.pushNamed(context, '/createEvent');
-
         break;
+      case'Log out':
+        _signout();
     }
   }
+
   Future<void> _deleteFriend(String phoneNumber) async {
     try {
-      // Find the friend's document ID in the "friends" subcollection
       final friendSnapshot = await friendsRef
           .where('phoneNumber', isEqualTo: phoneNumber)
           .get();
 
       if (friendSnapshot.docs.isNotEmpty) {
-        // Get the document ID of the friend to delete
         final friendDocId = friendSnapshot.docs.first.id;
-
-        // Remove the friend from Firestore
         await friendsRef.doc(friendDocId).delete();
 
-        // Update the UI
         setState(() {
           friends.removeWhere((friend) => friend['phoneNumber'] == phoneNumber);
-          filteredFriends.removeWhere((friend) => friend['phoneNumber'] == phoneNumber);
+          filteredFriends.removeWhere(
+                  (friend) => friend['phoneNumber'] == phoneNumber);
         });
 
         print('Friend deleted successfully!');
@@ -69,70 +75,31 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
   Future<void> _fetchFriends() async {
     friendsRef.snapshots().listen((snapshot) {
       setState(() {
-        friends = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-        filteredFriends = friends; // Initially, filtered = all friends
+        friends = snapshot.docs.map((doc) {
+          // Add the document ID (doc.id) to the friend data
+          final friendData = doc.data() as Map<String, dynamic>;
+          friendData['id'] = doc.id; // Add the auto-generated document ID
+          return friendData;
+        }).toList();
+
+        // Initialize filtered friends
+        filteredFriends = friends;
       });
     });
-    Expanded(
-      child: friends.isEmpty
-          ? Center(
-        child: Text(
-          'No friends added yet.',
-          style: TextStyle(fontSize: 18, color: Colors.grey),
-        ),
-      )
-          : ListView.builder(
-        itemCount: filteredFriends.length,
-        itemBuilder: (context, index) {
-          final friend = filteredFriends[index];
-          return ListTile(
-            leading: CircleAvatar(
-              radius: 30,
-              backgroundImage: NetworkImage(friend['profileImage'] ??
-                  'asset/default_profile.jpg'), // Fallback image
-            ),
-            title: Text(
-              friend['fullName'] ?? 'Unknown',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFB03565),
-              ),
-            ),
-            subtitle: Text(
-              friend['eventCount'] != null && friend['eventCount'] > 0
-                  ? "Upcoming Events: ${friend['eventCount']}"
-                  : "No Upcoming Events",
-              style: TextStyle(color: Color(0xFFB03565)),
-            ),
-          );
-        },
-      ),
-    );
-
   }
+
 
   void _filterFriends(String query) {
     setState(() {
       filteredFriends = friends
-          .where((friend) =>
-          friend['fullName']!.toLowerCase().contains(query.toLowerCase()))
+          .where((friend) => friend['fullName']!
+          .toLowerCase()
+          .contains(query.toLowerCase()))
           .toList();
     });
-    friendsRef.snapshots().listen((snapshot) {
-      setState(() {
-        friends = snapshot.docs.map((doc) {
-          print(doc.data()); // Debugging: Print the fetched friend data
-          return doc.data() as Map<String, dynamic>;
-        }).toList();
-        filteredFriends = friends; // Initially, filtered = all friends
-      });
-    });
-
   }
 
   void _addFriendManually() {
@@ -152,12 +119,14 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.pink),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (phoneNumber.isNotEmpty) {
-                  // Search for the user by phone number
                   try {
                     QuerySnapshot snapshot = await FirebaseFirestore.instance
                         .collection('users')
@@ -165,30 +134,29 @@ class _HomePageState extends State<HomePage> {
                         .get();
 
                     if (snapshot.docs.isNotEmpty) {
-                      // Get the user's data
-                      final friendData = snapshot.docs.first.data() as Map<String, dynamic>;
-                      final friendId = snapshot.docs.first.id;
+                      final friendData =
+                      snapshot.docs.first.data() as Map<String, dynamic>;
+                       final friendId = snapshot.docs.first.id;
 
-                      // Add the friend to the current user's friends collection
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(currentUser!.uid)
                           .collection('friends')
                           .doc(friendId)
                           .set({
+                        'id':friendId,
                         'fullName': friendData['fullName'],
                         'phoneNumber': friendData['phoneNumber'],
                         'profileImage': friendData['profileImage'],
-                        'eventCount': 0, // Default value
+                        'eventCount': 0,
                       });
 
-                      // Update the UI
                       Navigator.pop(context);
                       print('Friend added successfully!');
                     } else {
-                      // No user found with this phone number
                       Navigator.pop(context);
-                      _showErrorDialog('No user found with this phone number.');
+                      _showErrorDialog(
+                          'No user found with this phone number.');
                     }
                   } catch (e) {
                     Navigator.pop(context);
@@ -197,7 +165,10 @@ class _HomePageState extends State<HomePage> {
                   }
                 }
               },
-              child: Text('Add'),
+              child: Text(
+                'Add',
+                style: TextStyle(color: Colors.pink),
+              ),
             ),
           ],
         );
@@ -205,7 +176,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-// Helper function to display error dialogs
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -224,12 +194,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text("Hedieaty"),
         actions: [
           IconButton(
@@ -238,116 +207,166 @@ class _HomePageState extends State<HomePage> {
               Navigator.pushNamed(context, '/Profile');
             },
           ),
-
-
-        PopupMenuButton<String>(
-          onSelected: _handleMenuSelection,
-          itemBuilder: (BuildContext context) => [
-            PopupMenuItem(
-              value: 'Show Event List',
-              child: Text('Show Event List'),
-            ),
-            PopupMenuItem(
-              value: 'Show Gift List',
-              child: Text('Show Gift List'),
-            ),
-            PopupMenuItem(
-              value: 'Show Gift Details List',
-              child: Text('Show Gift Details List'),
-            ),
-            PopupMenuItem(
-              value: 'Create Your Own Event/List',
-              child: Text('Create Your Own Event/List'),
-            ),
-          ],
-          icon: Icon(Icons.more_vert, color: Colors.white),
-        ),
-        ],
-      ),
-
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 25.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search),
-                        hintText: 'Search friends...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onChanged: _filterFriends,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.person_add, color: Colors.pink),
-                    onPressed: _addFriendManually,
-                  ),
-                ],
+          Theme(
+            data: Theme.of(context).copyWith(
+              popupMenuTheme: PopupMenuThemeData(
+                color: Colors.white, // Background color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25), // Rounded border
+                ),
+                textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.pink, // Default text color
+                ),
               ),
             ),
-            Expanded(
-              child: friends.isEmpty
-                  ? Center(
-                child: Text(
-                  'No friends added yet.',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+            child: PopupMenuButton<String>(
+              onSelected: _handleMenuSelection,
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: 'Show Event List',
+                  child: Text('Show Event List'),
                 ),
-              )
-                  : ListView.builder(
-                itemCount: filteredFriends.length,
-                itemBuilder: (context, index) {
-                  final friend = filteredFriends[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 30,
-                      backgroundImage: (friend['profileImage'] != null && friend['profileImage'].isNotEmpty)
-                          ? AssetImage(friend['profileImage']) // Use the friend's profile image from Firestore
-                          : AssetImage('asset/default_profile.jpg') as ImageProvider, // Fallback to default image
-                    ),
-                    title: Text(
-                      friend['fullName'] ?? 'Unknown',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFB03565),
+                PopupMenuItem(
+                  value: 'Show Gift List',
+                  child: Text('Show Gift List'),
+                ),
+                PopupMenuItem(
+                  value: 'Create Your Own Event/List',
+                  child: Text('Create Your Own Event/List'),
+                ),
+                PopupMenuItem(
+                  value: 'Log out',
+                  child: Text('Log out', style: TextStyle(color: Colors.pink)),
+                ),
+              ],
+              icon: Icon(Icons.more_vert, color: Colors.white),
+            ),
+          )
+
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 25.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Search friends...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
                       ),
                     ),
-                    subtitle: Row(
-                      children: [
-                        Icon(Icons.event, color: Color(0xFFB03565)),
-                        SizedBox(width: 5),
-                        Text(
-                          friend['eventCount'] != null && friend['eventCount'] > 0
-                              ? "Upcoming Events: ${friend['eventCount']}"
-                              : "No Upcoming Events",
-                          style: TextStyle(color: Color(0xFFB03565)),
+                    onChanged: _filterFriends,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.person_add, color: Colors.pink),
+                  onPressed: _addFriendManually,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: friends.isEmpty
+                ? Center(
+              child: Text(
+                'No friends added yet.',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
+              itemCount: filteredFriends.length,
+              itemBuilder: (context, index) {
+                final friend = filteredFriends[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/friend_event',
+                      arguments: {
+                        'friendId': friend['id'],
+                        'friendName': friend['fullName'],
+                      },
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 5.0),
+                    padding: const EdgeInsets.all(15.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        // Call the delete friend method
-                        await _deleteFriend(friend['phoneNumber']);
-                      },
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundImage: (friend['profileImage'] != null &&
+                              friend['profileImage'].isNotEmpty)
+                              ? AssetImage(friend['profileImage'])
+                              : AssetImage('asset/pp_1.jpg')
+                          as ImageProvider,
+                        ),
+                        SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                friend['fullName'] ?? 'Unknown',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB03565),
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  Icon(Icons.event,
+                                      color: Color(0xFFB03565), size: 18),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    friend['eventCount'] != null &&
+                                        friend['eventCount'] > 0
+                                        ? "Upcoming Events: ${friend['eventCount']}"
+                                        : "No Upcoming Events",
+                                    style:
+                                    TextStyle(color: Color(0xFFB03565)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.pink),
+                          onPressed: () =>
+                              _deleteFriend(friend['phoneNumber']),
+                        ),
+                        Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
                     ),
-                    onTap: () {
-                      // Navigate to friend's details (e.g., gift list)
-                      Navigator.pushNamed(context, '/FriendDetails', arguments: friend['uid']);
-                    },
-                  );
-
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
-
+          ),
+        ],
+      ),
     );
   }
 }

@@ -13,45 +13,38 @@ class _SignUpPageState extends State<SignUpPage> {
   String email = '';
   String password = '';
   String phoneNumber = '';
-  String profileImage='';// Add a phone number field
+  String profileImage = '';
 
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
       try {
-        // Create user in Firebase Authentication
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
 
-        // Get the currently signed-in user
         User? user = userCredential.user;
 
-        // Add additional user details to Firestore
         if (user != null) {
           await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
             'fullName': fullName,
             'email': email,
-            'phoneNumber': phoneNumber, // Save phone number
+            'phoneNumber': phoneNumber,
             'createdAt': FieldValue.serverTimestamp(),
-            'profileImage':'asset/default_profile.jpg',
+            'profileImage': 'asset/default_profile.jpg',
           });
 
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Account created successfully!')),
           );
 
-          // Clear form fields after successful sign-up
           setState(() {
             fullName = '';
             email = '';
             password = '';
             phoneNumber = '';
-            profileImage='';// Clear phone number field
           });
 
-          // Navigate to the home page
           Navigator.pushNamed(context, '/home');
         }
       } on FirebaseAuthException catch (e) {
@@ -77,8 +70,8 @@ class _SignUpPageState extends State<SignUpPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign Up'),
-        automaticallyImplyLeading: false, // Removes the back arrow
-        toolbarHeight: 70.0, // Adjust the height of the app bar
+        automaticallyImplyLeading: false,
+        toolbarHeight: 70.0,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -95,7 +88,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     backgroundColor: Colors.pink,
                     child: ClipOval(
                       child: Image.asset(
-                        'asset/signup.jpg', // Your image path
+                        'asset/signup.jpg',
                       ),
                     ),
                   ),
@@ -115,7 +108,8 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   decoration: InputDecoration(
                     labelText: 'Full Name',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person, color: Colors.pink),
+                    border: OutlineInputBorder(borderRadius:BorderRadius.circular(25)),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -131,7 +125,8 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email, color: Colors.pink),
+                    border: OutlineInputBorder(borderRadius:BorderRadius.circular(25)),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -151,7 +146,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock, color: Colors.pink),
+                    border: OutlineInputBorder(borderRadius:BorderRadius.circular(25)),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -170,7 +166,8 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone, color: Colors.pink),
+                    border: OutlineInputBorder(borderRadius:BorderRadius.circular(25)),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -188,9 +185,16 @@ class _SignUpPageState extends State<SignUpPage> {
                 SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _handleSignUp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pink,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                  ),
                   child: Text(
                     'Sign Up',
-                    style: TextStyle(fontSize: 18, color: Colors.pink),
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
                 SizedBox(height: 16),

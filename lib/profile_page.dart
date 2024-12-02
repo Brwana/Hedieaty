@@ -15,6 +15,8 @@ class _MyProfileState extends State<MyProfile> {
   User? currentUser;
   Map<String, dynamic>? userData;
   List<Map<String, dynamic>> events = [];
+  TextEditingController nameController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
 
   @override
   void initState() {
@@ -33,13 +35,14 @@ class _MyProfileState extends State<MyProfile> {
             .get();
 
         if (userDoc.exists) {
-          print("Fetched user data: ${userDoc.data()}"); // Debug log
           setState(() {
             userData = userDoc.data() as Map<String, dynamic>;
             events = List<Map<String, dynamic>>.from(userData!['events'] ?? []);
+
+            // Populate the controllers with current user data
+            nameController.text = userData!['fullName'] ?? '';
+            phoneController.text = userData!['phoneNumber'] ?? '';
           });
-        } else {
-          print("User document not found in Firestore.");
         }
       }
     } catch (e) {
@@ -47,6 +50,128 @@ class _MyProfileState extends State<MyProfile> {
     }
   }
 
+
+  // Update user data in Firestore
+  Future<void> _updateFullName(String newName) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).update({
+        'fullName': newName,
+      });
+      print("Profile updated successfully.");
+    } catch (e) {
+      print("Error updating Firestore: $e");
+    }
+  }
+  // Update user data in Firestore
+  Future<void> _updatePhoneNumber(String newNumber) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).update({
+        'phoneNumber': newNumber,
+      });
+      print("Profile updated successfully.");
+    } catch (e) {
+      print("Error updating Firestore: $e");
+    }
+  }
+
+  // Show edit dialog for name and phone number
+  void _editFullName() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Profile"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Full Name'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String newName = nameController.text;
+                if (newName.isNotEmpty ) {
+                  await _updateFullName(newName);
+                  Navigator.pop(context);
+                  _fetchUserData(); // Refresh the user data after update
+                } else {
+                  // Show an error message if fields are empty
+                  _showErrorDialog('Please fill out both fields.');
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  void _editPhoneNumber() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Profile"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Full Name'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String newPhone = phoneController.text;
+                if (newPhone.isNotEmpty) {
+                  await _updatePhoneNumber(newPhone);
+                  Navigator.pop(context);
+                  _fetchUserData(); // Refresh the user data after update
+                } else {
+                  // Show an error message if fields are empty
+                  _showErrorDialog('Please fill out both fields.');
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   // Update the profile image URL in Firestore
   Future<void> _updateProfileImage(String imageUrl) async {
@@ -60,14 +185,6 @@ class _MyProfileState extends State<MyProfile> {
     } catch (e) {
       print("Error updating Firestore: $e");
     }
-  }
-
-
-
-  // Generate a random query parameter to bypass image caching
-  String _getCacheBustingUrl(String url) {
-    final randomQuery = Random().nextInt(100000).toString();
-    return "$url?cb=$randomQuery";
   }
 
   @override
@@ -90,7 +207,7 @@ class _MyProfileState extends State<MyProfile> {
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser!.uid)
-            .snapshots(),  // Listen to real-time updates from Firestore
+            .snapshots(), // Listen to real-time updates from Firestore
         builder: (context, snapshot) {
           // Handle loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -114,19 +231,19 @@ class _MyProfileState extends State<MyProfile> {
 
           return Column(
             children: [
+              // Profile Image
               Center(
                 child: Stack(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 50.0), // Increase top padding as needed
+                      padding: const EdgeInsets.only(top: 50.0),
                       child: CircleAvatar(
                         radius: 60,
                         backgroundImage: (userData!['profileImage'] != null && userData!['profileImage'].isNotEmpty)
-                            ? AssetImage(userData!['profileImage']) // For images saved in Firestore
-                            : const AssetImage('asset/default_profile.jpg')  // Fallback image
+                            ? AssetImage(userData!['profileImage'])
+                            : const AssetImage('asset/default_profile.jpg'),
                       ),
                     ),
-
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -141,7 +258,6 @@ class _MyProfileState extends State<MyProfile> {
                           );
 
                           if (selectedImageUrl != null) {
-                            // Update Firestore with the selected image URL
                             await _updateProfileImage(selectedImageUrl);
                           }
                         },
@@ -158,29 +274,70 @@ class _MyProfileState extends State<MyProfile> {
                     ),
                   ],
                 ),
-              )
-,
+              ),
+              // Profile Fields
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                   children: [
-                    Text(
-                      userData!['fullName'] ?? 'User Name',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    // Full Name Field
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: nameController,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                labelText: 'Full Name',
+                              ),
+                              readOnly: true, // Prevent editing
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: _editFullName,
+                          ),
+                        ],
                       ),
                     ),
-                    // IconButton(
-                    //   icon: const Icon(Icons.edit, color: Color(0xFFB03565)),
-                    //   onPressed: () {
-                    //     // Logic to edit profile name (can be added later)
-                    //   },
-                    // ),
+                    const SizedBox(height: 16),
+                    // Phone Number Field
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: phoneController,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                labelText: 'Phone Number',
+                              ),
+                              keyboardType: TextInputType.phone,
+                              readOnly: true, // Prevent editing
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: _editPhoneNumber,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
+              // Events Section
               Expanded(
                 child: ListView.builder(
                   itemCount: events.length,
@@ -204,7 +361,10 @@ class _MyProfileState extends State<MyProfile> {
                 onPressed: () {
                   // Logic to view pledged gifts (can be added later)
                 },
-                child: const Text("My Pledged Gifts",style: TextStyle(color: Colors.pink),),
+                child: const Text(
+                  "My Pledged Gifts",
+                  style: TextStyle(color: Colors.pink),
+                ),
               ),
             ],
           );
@@ -212,5 +372,4 @@ class _MyProfileState extends State<MyProfile> {
       ),
     );
   }
-
 }
