@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class EditGift extends StatefulWidget {
   final String eventId; // Event ID to identify the event
-  final String giftId;
-  // Gift ID to identify the gift
-  const EditGift({Key? key,required this.giftId ,required this.eventId}) : super(key: key);
+  final String giftId; // Gift ID to identify the gift
+  const EditGift({Key? key, required this.giftId, required this.eventId})
+      : super(key: key);
 
   @override
   State<EditGift> createState() => _EditGiftState();
@@ -19,6 +19,7 @@ class _EditGiftState extends State<EditGift> {
   double giftPrice = 0.0;
   String? selectedCategory;
   bool isLoading = true;
+  String errorMessage = '';
 
   final List<String> categories = [
     'Electronics',
@@ -37,16 +38,27 @@ class _EditGiftState extends State<EditGift> {
   /// Load the gift details from Firestore
   Future<void> _loadGiftDetails() async {
     try {
+      // final user = FirebaseAuth.instance.currentUser;
+      // if (user == null) {
+      //   // If the user is not logged in, redirect them to the login screen or show a message.
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('User not authenticated. Please log in.')),
+      //   );
+      //   Navigator.pop(context); // Go back if not authenticated.
+      //   return;
+      // }
+
       final userId = FirebaseAuth.instance.currentUser!.uid;
       final giftRef = FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('events')
-          .doc(widget.eventId) // Event ID
+          .doc(widget.eventId)
           .collection('gifts')
-          .doc(widget.giftId); // Gift ID
+          .doc(widget.giftId);
 
       final giftSnapshot = await giftRef.get();
+      print('Gift Snapshot: $giftSnapshot');
       if (giftSnapshot.exists) {
         final giftData = giftSnapshot.data()!;
         setState(() {
@@ -57,12 +69,14 @@ class _EditGiftState extends State<EditGift> {
           isLoading = false;
         });
       } else {
+        print('Gift not found');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gift not found.')),
         );
         Navigator.pop(context);
       }
     } catch (e) {
+      print('Error loading gift details: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to load gift details.')),
       );
@@ -70,10 +84,10 @@ class _EditGiftState extends State<EditGift> {
     }
   }
 
+
   Future<void> _updateGift() async {
     if (_formKey.currentState!.validate() && selectedCategory != null) {
       _formKey.currentState!.save();
-
       try {
         final userId = FirebaseAuth.instance.currentUser!.uid;
         final giftRef = FirebaseFirestore.instance
@@ -91,7 +105,6 @@ class _EditGiftState extends State<EditGift> {
           'category': selectedCategory,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gift updated successfully!')),
         );
@@ -126,138 +139,134 @@ class _EditGiftState extends State<EditGift> {
         title: const Text('Edit Gift'),
         backgroundColor: const Color(0xFFE91E63),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        initialValue: giftName,
-                        decoration: InputDecoration(
-                          labelText: 'Gift Name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        onSaved: (value) {
-                          giftName = value!.trim();
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the gift name';
-                          }
-                          return null;
-                        },
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column( // Use Column, not inside CustomMultiChildLayout
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  initialValue: giftName,
+                  decoration: InputDecoration(
+                    labelText: 'Gift Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  onSaved: (value) {
+                    giftName = value!.trim();
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the gift name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  initialValue: giftDescription,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  maxLines: 3,
+                  onSaved: (value) {
+                    giftDescription = value!.trim();
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  initialValue: giftPrice.toString(),
+                  decoration: InputDecoration(
+                    labelText: 'Price',
+                    prefixText: '\$',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onSaved: (value) {
+                    giftPrice = double.parse(value!.trim());
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the price';
+                    }
+                    final parsed = double.tryParse(value.trim());
+                    if (parsed == null || parsed < 0) {
+                      return 'Please enter a valid price';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  value: selectedCategory,
+                  items: categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category,
+                        style: const TextStyle(fontFamily: "Caveat", fontSize: 20),
                       ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        initialValue: giftDescription,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        maxLines: 3,
-                        onSaved: (value) {
-                          giftDescription = value!.trim();
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a description';
-                          }
-                          return null;
-                        },
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCategory = value!;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a category';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _updateGift,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE91E63),
+                    ),
+                    child: const Text(
+                      'Update Gift',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
                       ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        initialValue: giftPrice.toString(),
-                        decoration: InputDecoration(
-                          labelText: 'Price',
-                          prefixText: '\$',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onSaved: (value) {
-                          giftPrice = double.parse(value!.trim());
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the price';
-                          }
-                          final parsed = double.tryParse(value.trim());
-                          if (parsed == null || parsed < 0) {
-                            return 'Please enter a valid price';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'Category',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        value: selectedCategory,
-                        items: categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(
-                              category,
-                              style: const TextStyle(fontFamily: "Caveat", fontSize: 20),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedCategory = value!;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a category';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _updateGift,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE91E63),
-                          ),
-                          child: const Text(
-                            'Update Gift',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
+
+
+
+
+
 }

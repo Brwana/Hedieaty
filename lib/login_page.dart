@@ -1,6 +1,10 @@
+import 'dart:convert'; // For utf8 encoding
+import 'package:crypto/crypto.dart'; // For hashing
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hedieaty/database.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -11,48 +15,93 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   String email = '';
   String password = '';
+  final DatabaseClass dbHelper = DatabaseClass();
 
-  void _handleLogin() async {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<bool> _isOnline() async {
+      var connectivityResult = await Connectivity().checkConnectivity();
+
+      // Return true if the device is connected to WiFi, Mobile, or Ethernet
+      return connectivityResult == ConnectivityResult.wifi ||
+          connectivityResult == ConnectivityResult.mobile ||
+          connectivityResult == ConnectivityResult.ethernet;
+
+  }
+
+  Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      try {
-        UserCredential userCredential = await FirebaseAuth.instance
-            .signInWithEmailAndPassword(email: email, password: password);
+      bool online = await _isOnline();
+      print("am i online $online");
 
-        User? user = userCredential.user;
 
-        if (user != null) {
-          DocumentSnapshot userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
+      if (online) {
+        await _loginOnline();
+      } else {
+        await _loginOffline();
+      }
+    }
+  }
+
+  Future<void> _loginOnline() async {
+    try {
+      // Authenticate with Firebase
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Fetch user data from Firestore
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
 
           if (userDoc.exists) {
             Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-            print('User Data: $userData');
+            print('User Data: $userData');}
 
-            Navigator.pushNamed(context, '/home');
-          } else {
-            print('User document does not exist in Firestore.');
-          }
-        }
-      } on FirebaseAuthException catch (e) {
-        String errorMessage;
+          // Navigate to the home screen
+          Navigator.pushNamed(context, '/home');
 
-        if (e.code == 'user-not-found') {
-          errorMessage = 'No user found for this email.';
-        } else if (e.code == 'wrong-password') {
-          errorMessage = 'Incorrect password.';
-        } else {
-          errorMessage = e.message ?? 'An error occurred.';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
       }
+    } catch (e) {
+      print('Online login failed: $e');
+      _showError(e.toString());
     }
+  }
+
+  Future<void> _loginOffline() async {
+    print("ana offline");
+    // Hash the entered password
+    String hashedPassword = sha256.convert(utf8.encode(password)).toString();
+
+    // Check the local SQLite database for the email and hashed password
+    var result = await dbHelper.readData('''
+      SELECT * FROM Users WHERE Email = '$email' AND Password = '$hashedPassword'
+    ''');
+
+    if (result.isNotEmpty) {
+      // Successfully logged in offline
+      Navigator.pushNamed(context, '/home');
+    } else {
+      // Invalid credentials
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid email or password for offline login.')),
+      );
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -147,7 +196,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   child: Text(
                     'Log In',
-                    style: TextStyle(fontSize: 18,color: Colors.pink),
+                    style: TextStyle(fontSize: 18, color: Colors.pink),
                   ),
                 ),
                 SizedBox(height: 16),

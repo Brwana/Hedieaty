@@ -1,78 +1,123 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-Future<String> getDatabasePath() async {
-  var databasesPath = await getDatabasesPath();
-  String path = join(databasesPath, 'my_database.db');
-  return path;
+class DatabaseClass {
+  static Database? _myDatabase;
+
+  Future<Database?> get myDatabase async {
+    if (_myDatabase == null) {
+      _myDatabase = await initialize();
+      return _myDatabase;
+    } else {
+      return _myDatabase;
+    }
+  }
+
+  int version = 1;
+
+  initialize() async {
+    String myPath = await getDatabasesPath();
+    String path = join(myPath, 'myDatabase.db');
+
+    Database myDb = await openDatabase(
+      path,
+      version: version,
+      onCreate: (db, version) async {
+        // Initial table creation
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS Users (
+          ID TEXT NOT NULL PRIMARY KEY,
+          Name TEXT NOT NULL,
+          Email TEXT NOT NULL,
+          Password TEXT NOT NULL,
+          PhoneNumber TEXT NOT NULL
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS Events (
+          ID TEXT NOT NULL PRIMARY KEY,
+          Name TEXT NOT NULL,
+          Date TEXT NOT NULL,
+          Location TEXT NOT NULL,
+          Description TEXT NOT NULL,
+          UserID TEXT NOT NULL,
+          FOREIGN KEY (UserID) REFERENCES Users (ID)
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS Gifts (
+          ID TEXT NOT NULL PRIMARY KEY,
+          Name TEXT NOT NULL,
+          Description TEXT NOT NULL,
+          Category TEXT NOT NULL,
+          Price TEXT NOT NULL,
+          Status TEXT NOT NULL,
+          EventID TEXT NOT NULL,
+          FOREIGN KEY (EventID) REFERENCES Events (ID)
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS Friends (
+          UserID TEXT NOT NULL,
+          FriendID TEXT NOT NULL,
+          PRIMARY KEY (UserID, FriendID),
+          FOREIGN KEY (UserID) REFERENCES Users (ID),
+          FOREIGN KEY (FriendID) REFERENCES Users (ID)
+        )
+      ''');
+
+        print("Database and tables have been created.");
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // Handle migrations
+        if (oldVersion < 2) {
+          await db.execute("ALTER TABLE Users ADD COLUMN PIN TEXT NOT NULL DEFAULT ''");
+          print("Database upgraded to include PIN column in Users table.");
+        }
+      },
+    );
+
+    return myDb;
+  }
+
+
+  Future<List<Map<String, dynamic>>> readData(String sql) async {
+    Database? myData = await myDatabase;
+    var response = await myData!.rawQuery(sql);
+    return response;
+  }
+
+  Future<int> insertData(String sql) async {
+    Database? myData = await myDatabase;
+    int response = await myData!.rawInsert(sql);
+    return response;
+  }
+
+  Future<int> deleteData(String sql) async {
+    Database? myData = await myDatabase;
+    int response = await myData!.rawDelete(sql);
+    return response;
+  }
+
+  Future<int> updateData(String sql) async {
+    Database? myData = await myDatabase;
+    int response = await myData!.rawUpdate(sql);
+    return response;
+  }
+
+  Future<void> deleteDatabaseInstance() async {
+    String databasePath = await getDatabasesPath();
+    String path = join(databasePath, 'myDatabase.db');
+    bool exists = await databaseExists(path);
+    if (exists) {
+      print('Database exists and will be deleted.');
+      await deleteDatabase(path);
+      print("Database has been deleted.");
+    } else {
+      print("Database does not exist.");
+    }
+  }
 }
-Future<Database> openDatabaseConnection() async {
-  String path = await getDatabasePath();
-  return openDatabase(
-    path,
-    version: 1, // Increment this if the schema changes
-    onCreate: (Database db, int version) async {
-      // This is where you create the table(s)
-    },
-  );
-}
-
-Future<Database> initializeDatabase() async {
-  String path = join(await getDatabasesPath(), 'app_database.db');
-
-  return openDatabase(
-    path,
-    version: 1,
-    onCreate: (Database db, int version) async {
-      // Create Users table
-      await db.execute('''
-        CREATE TABLE Users (
-          ID INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          email TEXT UNIQUE NOT NULL,
-          preferences TEXT
-        )
-      ''');
-
-      // Create Events table
-      await db.execute('''
-        CREATE TABLE Events (
-          ID INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          date TEXT NOT NULL,
-          location TEXT,
-          description TEXT,
-          userID INTEGER,
-          FOREIGN KEY (userID) REFERENCES Users (ID)
-        )
-      ''');
-
-      // Create Gifts table
-      await db.execute('''
-        CREATE TABLE Gifts (
-          ID INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          description TEXT,
-          category TEXT,
-          price REAL,
-          status TEXT,
-          eventID INTEGER,
-          FOREIGN KEY (eventID) REFERENCES Events (ID)
-        )
-      ''');
-
-      // Create Friends table
-      await db.execute('''
-        CREATE TABLE Friends (
-          userID INTEGER NOT NULL,
-          friendID INTEGER NOT NULL,
-          PRIMARY KEY (userID, friendID),
-          FOREIGN KEY (userID) REFERENCES Users (ID),
-          FOREIGN KEY (friendID) REFERENCES Users (ID)
-        )
-      ''');
-    },
-  );
-}
-
-

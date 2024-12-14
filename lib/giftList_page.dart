@@ -13,19 +13,49 @@ class GiftListPage extends StatefulWidget {
 class _GiftListPageState extends State<GiftListPage> {
   late String userId;
   late String eventId;
+  String? eventName;
 
   @override
   void initState() {
     super.initState();
-    userId = FirebaseAuth.instance.currentUser!.uid;
+    userId = FirebaseAuth.instance.currentUser!.uid; // Already correct
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, String>;
-    eventId = args['eventId'] ?? '';
 
+    // Access route arguments
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, String>?;
+
+    if (args != null) {
+      eventId = args['eventId'] ?? '';
+      eventName=args['eventName']??'';// Safely set eventId
+
+      // Fetch the event name from Firestore
+      _fetchEventName();
+    } else {
+      print('No arguments passed or eventId is missing');
+    }
+  }
+
+  Future<void> _fetchEventName() async {
+    try {
+      final eventDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('events')
+          .doc(eventId)
+          .get();
+
+      if (eventDoc.exists) {
+        setState(() {
+          eventName = eventDoc.data()?['name'] ?? 'Event';
+        });
+      }
+    } catch (e) {
+      print('Error fetching event name: $e');
+    }
   }
 
   void _editGift(String giftId) {
@@ -33,9 +63,8 @@ class _GiftListPageState extends State<GiftListPage> {
       context,
       '/editgift',
       arguments: {
-        'giftId': giftId,
         'eventId': eventId,
-
+        'giftId': giftId,
       },
     );
   }
@@ -61,7 +90,6 @@ class _GiftListPageState extends State<GiftListPage> {
   }
 
   Future<void> _addGift() async {
-    // Navigate to the CreateGift page with the necessary arguments
     final newGift = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -79,15 +107,19 @@ class _GiftListPageState extends State<GiftListPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Gift List",
-          style: TextStyle(color: Colors.white, fontFamily: "Lobster"),
+        title: FittedBox(
+          fit: BoxFit.scaleDown, // Ensures text scales down if needed
+          child: Text(
+            eventName != null ? "$eventName Gift List" : "Loading...",
+            style: const TextStyle(color: Colors.white, fontFamily: "Lobster"),
+          ),
         ),
+
+
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -102,7 +134,7 @@ class _GiftListPageState extends State<GiftListPage> {
             .collection('events')
             .doc(eventId)
             .collection('gifts')
-            .orderBy('name', descending: false) // Sort by gift name
+            .orderBy('name', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -120,58 +152,55 @@ class _GiftListPageState extends State<GiftListPage> {
 
           final gifts = snapshot.data!.docs;
 
-          return Flexible(
-            child: ListView.builder(
-              itemCount: gifts.length,
-              itemBuilder: (context, index) {
-                final gift = gifts[index];
-                final giftId = gift.id;
-                final giftData = gift.data() as Map<String, dynamic>;
+          return ListView.builder(
+            itemCount: gifts.length,
+            itemBuilder: (context, index) {
+              final gift = gifts[index];
+              final giftId = gift.id;
+              final giftData = gift.data() as Map<String, dynamic>;
 
-                return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  child: ListTile(
-                    title: Text(
-                      giftData['name'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: (giftData['pledged'] ?? false) ? Colors.grey : const Color(0xFFB03565), // Default to false if null
-                        decoration: (giftData['pledged'] ?? false) ? TextDecoration.lineThrough : null, // Default to false if null
-                      ),
-                    ),
-
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Category: ${giftData['category'] ?? 'N/A'}",
-                          style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
-                        ),
-                        Text(
-                          "Status: ${giftData['status'] ?? 'N/A'}",
-                          style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Color(0xFFB03565)),
-                          onPressed: () => _editGift(giftId),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.black54),
-                          onPressed: () => _deleteGift(giftId),
-                        ),
-                      ],
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: ListTile(
+                  title: Text(
+                    giftData['name'],
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: (giftData['pledged'] ?? false) ? Colors.grey : const Color(0xFFB03565),
+                      decoration: (giftData['pledged'] ?? false) ? TextDecoration.lineThrough :TextDecoration.none,
                     ),
                   ),
-                );
-              },
-            ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Category: ${giftData['category'] ?? 'N/A'}",
+                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                      ),
+                      Text(
+                        "Status: ${giftData['status'] ?? 'N/A'}",
+                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                      ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Color(0xFFB03565)),
+                        onPressed: () => _editGift(giftId),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.black54),
+                        onPressed: () => _deleteGift(giftId),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           );
         },
       ),

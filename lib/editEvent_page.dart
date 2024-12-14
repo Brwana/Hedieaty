@@ -3,12 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class EditEvent extends StatefulWidget {
-  final String eventId; // Pass the event ID to identify the event
-  const EditEvent({Key? key, required this.eventId}) : super(key: key);
+  final String eventId;
+  final Map<String, dynamic>? eventData; // Optional, if needed
+
+  const EditEvent({
+    Key? key,
+    required this.eventId,
+    this.eventData,
+  }) : super(key: key);
 
   @override
   State<EditEvent> createState() => _EditEventState();
 }
+
 
 class _EditEventState extends State<EditEvent> {
   final _formKey = GlobalKey<FormState>();
@@ -40,7 +47,7 @@ class _EditEventState extends State<EditEvent> {
           .collection('users')
           .doc(userId)
           .collection('events')
-          .doc(widget.eventId);
+          .doc(widget.eventId); // Access eventId passed through constructor
 
       final eventSnapshot = await eventRef.get();
       if (eventSnapshot.exists) {
@@ -77,7 +84,7 @@ class _EditEventState extends State<EditEvent> {
             .collection('users')
             .doc(userId)
             .collection('events')
-            .doc(widget.eventId);
+            .doc(widget.eventId); // Access eventId passed through constructor
 
         await eventRef.update({
           'name': eventName,

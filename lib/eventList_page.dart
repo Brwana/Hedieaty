@@ -61,27 +61,25 @@ class _EventListPageState extends State<EventListPage> {
     }
   }
 
-  void _editEvent(String eventId, Map<String, dynamic> event) {
+  void _editEvent(String eventId, Map<String, dynamic> eventData) {
     Navigator.pushNamed(
       context,
       '/editEvent',
       arguments: {
         'eventId': eventId,
-        'eventData': event,
+        'eventData': eventData, // Only required if EditEvent uses eventData
       },
     );
+
   }
 
-  void _navigateToGiftListPage(String eventID) {
-    print("eventlist");
-    print(eventID);
-    print(userId);
+  void _navigateToGiftListPage(String eventID,String eventName) {
     Navigator.pushNamed(
       context,
       '/GiftList',
       arguments: {
         'eventId': eventID,
-        'userId': userId,
+        'eventName':eventName,
       },
     );
   }
@@ -187,7 +185,7 @@ class _EventListPageState extends State<EventListPage> {
                         ),
                       ],
                     ),
-                    onTap: () => _navigateToGiftListPage(eventId),
+                    onTap: () => _navigateToGiftListPage(eventId,eventData['name']),
                   ),
                 );
               },

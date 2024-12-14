@@ -13,7 +13,7 @@ import 'firebase_options.dart';
 import 'package:hedieaty/createEvent.dart';
 import 'package:hedieaty/editEvent_page.dart';
 import 'package:hedieaty/editGift_page.dart';
-
+import 'database.dart';
 import 'friend_Event.dart';
 import 'friend_gifts.dart';
 
@@ -23,6 +23,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // DatabaseClass dbClass = DatabaseClass();
+  // await dbClass.deleteDatabaseInstance();
   runApp(MyApp());
 }
 
@@ -50,8 +52,17 @@ class _MyAppState extends State<MyApp> {
         '/signup':(context)=>SignUpPage(),
         '/login':(context)=>LoginPage(),
         '/createEvent':(context)=>CreateEvent(),
-        '/editevent':(context)=>EditEvent(eventId: '',),
-        '/editgift':(context)=>EditGift(eventId: '',giftId: '',),
+        '/editEvent': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return EditEvent(eventId: args['eventId']);
+        },
+        '/editgift': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+          return EditGift(
+            eventId: args['eventId']!,
+            giftId: args['giftId']!,
+          );
+        },
         '/friend_event':(context)=>FriendEventPage(),
         '/friend_gifts':(context)=>FriendGiftListPage(),
       },

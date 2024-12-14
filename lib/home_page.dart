@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  // The constructor now passes the `key` parameter to the superclass (StatefulWidget) constructor
+  const HomePage({super.key});  // shorthand
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
 
 class _HomePageState extends State<HomePage> {
   late User? currentUser;
