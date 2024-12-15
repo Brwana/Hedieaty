@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hedieaty/database.dart';
+import 'package:hedieaty/DataSyncService.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -16,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   String email = '';
   String password = '';
   final DatabaseClass dbHelper = DatabaseClass();
+  final DataSyncService syncService=DataSyncService();
 
   @override
   void initState() {
@@ -62,20 +64,29 @@ class _LoginPageState extends State<LoginPage> {
             .doc(user.uid)
             .get();
 
+        if (userDoc.exists) {
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          print('User Data: $userData');
 
-          if (userDoc.exists) {
-            Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-            print('User Data: $userData');}
+          syncService.syncFirestoreToSQLite(user.uid);
+          print("sync completed successfully");
+          await syncService.queryAndPrintTable('Users');
+          await syncService.queryAndPrintTable('Friends');
+          await syncService.queryAndPrintTable('Events');
+          await syncService.queryAndPrintTable('Gifts');
+          // Sync data to local SQLite database
 
           // Navigate to the home screen
           Navigator.pushNamed(context, '/home');
-
+        }
       }
     } catch (e) {
       print('Online login failed: $e');
       _showError(e.toString());
     }
   }
+
+
 
   Future<void> _loginOffline() async {
     print("ana offline");
@@ -88,7 +99,12 @@ class _LoginPageState extends State<LoginPage> {
     ''');
 
     if (result.isNotEmpty) {
-      // Successfully logged in offline
+      print("logged in offline successfully");
+      // Store user data globally or locally as needed
+      // Example: FirebaseAuth-like simulation for offline access
+      await _simulateAuthStateForOffline(result[0]);
+
+      // Navigate to the home screen
       Navigator.pushNamed(context, '/home');
     } else {
       // Invalid credentials
@@ -97,6 +113,13 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
+  Future<void> _simulateAuthStateForOffline(Map<String, dynamic> userData) async {
+    // Simulate a "current user" state for offline access
+    // For example, you can use SharedPreferences or a similar mechanism to store user info
+    print("Simulating auth state for offline user: ${userData['Email']}");
+  }
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

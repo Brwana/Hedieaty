@@ -1,41 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hedieaty/database.dart';
 
 class HomePage extends StatefulWidget {
-  // The constructor now passes the `key` parameter to the superclass (StatefulWidget) constructor
-  const HomePage({super.key});  // shorthand
+  const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-
 class _HomePageState extends State<HomePage> {
   late User? currentUser;
   late CollectionReference friendsRef;
+  final DatabaseClass databaseHelper = DatabaseClass();
   List<Map<String, dynamic>> friends = [];
   List<Map<String, dynamic>> filteredFriends = [];
+  bool isOnline = false;
 
   @override
   void initState() {
     super.initState();
-    currentUser = FirebaseAuth.instance.currentUser;
-    friendsRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser!.uid)
-        .collection('friends');
-    _fetchFriends();
+    _checkConnectivity();
   }
-  Future<void> _signout() async {
-    try {
-      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-    } catch (e) {
-      print('Error during logout: $e');
-      _showErrorDialog('Failed to log out. Please try again.');
-    }
-  }
-
 
   void _handleMenuSelection(String value) {
     switch (value) {
@@ -52,7 +40,6 @@ class _HomePageState extends State<HomePage> {
         _signout();
     }
   }
-
   Future<void> _deleteFriend(String phoneNumber) async {
     try {
       final friendSnapshot = await friendsRef
@@ -76,34 +63,6 @@ class _HomePageState extends State<HomePage> {
       _showErrorDialog('Failed to delete friend. Please try again.');
     }
   }
-
-  Future<void> _fetchFriends() async {
-    friendsRef.snapshots().listen((snapshot) {
-      setState(() {
-        friends = snapshot.docs.map((doc) {
-          // Add the document ID (doc.id) to the friend data
-          final friendData = doc.data() as Map<String, dynamic>;
-          friendData['id'] = doc.id; // Add the auto-generated document ID
-          return friendData;
-        }).toList();
-
-        // Initialize filtered friends
-        filteredFriends = friends;
-      });
-    });
-  }
-
-
-  void _filterFriends(String query) {
-    setState(() {
-      filteredFriends = friends
-          .where((friend) => friend['fullName']!
-          .toLowerCase()
-          .contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
   void _addFriendManually() {
     String phoneNumber = '';
 
@@ -138,30 +97,33 @@ class _HomePageState extends State<HomePage> {
                     if (snapshot.docs.isNotEmpty) {
                       final friendData =
                       snapshot.docs.first.data() as Map<String, dynamic>;
-                       final friendId = snapshot.docs.first.id;
+                      final friendId = snapshot.docs.first.id;
 
+                      // Add to Firestore
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(currentUser!.uid)
                           .collection('friends')
                           .doc(friendId)
                           .set({
-                        'id':friendId,
+                        'id': friendId,
                         'fullName': friendData['fullName'],
                         'phoneNumber': friendData['phoneNumber'],
                         'profileImage': friendData['profileImage'],
                         'eventCount': 0,
                       });
 
-                      Navigator.pop(context);
+                      // Fetch and update the list
+                      await _fetchFriendsFromFirestore();
+
+                      Navigator.pop(context); // Close dialog
                       print('Friend added successfully!');
                     } else {
-                      Navigator.pop(context);
-                      _showErrorDialog(
-                          'No user found with this phone number.');
+                      Navigator.pop(context); // Close dialog
+                      _showErrorDialog('No user found with this phone number.');
                     }
                   } catch (e) {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Close dialog
                     _showErrorDialog('Failed to add friend. Please try again.');
                     print('Error: $e');
                   }
@@ -176,6 +138,79 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    isOnline = connectivityResult != ConnectivityResult.none;
+
+    if (isOnline) {
+      print("am i online? $isOnline");
+      // Fetch online data and sync to SQLite
+      await _fetchFriendsFromFirestore();
+    } else {
+      // Fetch data from SQLite
+      await _fetchFriendsFromSQLite();
+    }
+  }
+
+  Future<void> _fetchFriendsFromFirestore() async {
+    try {
+      currentUser = FirebaseAuth.instance.currentUser;
+      friendsRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser!.uid)
+          .collection('friends');
+      friendsRef.snapshots().listen((snapshot) {
+        setState(() {
+          friends = snapshot.docs.map((doc) {
+            // Add the document ID (doc.id) to the friend data
+            final friendData = doc.data() as Map<String, dynamic>;
+            friendData['id'] = doc.id; // Add the auto-generated document ID
+            return friendData;
+          }).toList();
+
+          // Initialize filtered friends
+          filteredFriends = friends;
+        });
+      });
+    } catch (e) {
+      print('Error fetching friends from Firestore: $e');
+    }
+  }
+
+  Future<void> _fetchFriendsFromSQLite() async {
+    try {
+      final localFriends = await databaseHelper.readData('''
+        SELECT FriendID FROM Friends WHERE UserID = '${currentUser!.uid}';
+      ''');
+
+      // Fetch data from SQLite
+      friends = await databaseHelper.readData('SELECT * FROM Friends WHERE UserID = "${currentUser!.uid}"');
+
+      // Format data as a list of maps for the UI
+      setState(() {
+        friends = localFriends.map((row) {
+          return {
+            'id': row['FriendID'],
+            'fullName': 'Unknown (Offline)', // Placeholder for offline data
+            'eventCount': 0,
+          };
+        }).toList();
+        filteredFriends = friends;
+      });
+    } catch (e) {
+      print('Error fetching friends from SQLite: $e');
+    }
+  }
+
+  void _filterFriends(String query) {
+    setState(() {
+      filteredFriends = friends
+          .where((friend) => friend['fullName'] != null &&
+          friend['fullName']!.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -196,6 +231,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _signout() async {
+    try {
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      print('Error during logout: $e');
+      _showErrorDialog('Failed to log out. Please try again.');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -278,7 +322,9 @@ class _HomePageState extends State<HomePage> {
             child: friends.isEmpty
                 ? Center(
               child: Text(
-                'No friends added yet.',
+                isOnline
+                    ? 'No friends added yet.'
+                    : 'No friends available offline.',
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             )
