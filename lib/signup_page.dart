@@ -53,6 +53,7 @@ class _SignUpPageState extends State<SignUpPage> {
             'fullName': fullName,
             'email': email,
             'phoneNumber': phoneNumber,
+            'password':password,
             'createdAt': FieldValue.serverTimestamp(),
             'profileImage': 'asset/default_profile.jpg',
           });

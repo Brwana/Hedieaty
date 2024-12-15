@@ -322,9 +322,7 @@ class _HomePageState extends State<HomePage> {
             child: friends.isEmpty
                 ? Center(
               child: Text(
-                isOnline
-                    ? 'No friends added yet.'
-                    : 'No friends available offline.',
+                     'No friends added yet.',
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             )

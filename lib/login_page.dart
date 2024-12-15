@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hedieaty/database.dart';
 import 'package:hedieaty/DataSyncService.dart';
+import 'package:hedieaty/offlineHome.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -91,11 +92,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loginOffline() async {
     print("ana offline");
     // Hash the entered password
-    String hashedPassword = sha256.convert(utf8.encode(password)).toString();
 
     // Check the local SQLite database for the email and hashed password
     var result = await dbHelper.readData('''
-      SELECT * FROM Users WHERE Email = '$email' AND Password = '$hashedPassword'
+      SELECT * FROM Users WHERE Email = '$email' AND Password = '$password'
     ''');
 
     if (result.isNotEmpty) {
@@ -103,9 +103,15 @@ class _LoginPageState extends State<LoginPage> {
       // Store user data globally or locally as needed
       // Example: FirebaseAuth-like simulation for offline access
       await _simulateAuthStateForOffline(result[0]);
-
+      String userId=result[0]['ID'];
+      print(userId);
       // Navigate to the home screen
-      Navigator.pushNamed(context, '/home');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OfflineHomePage(currentUserId: userId),
+        ),
+      );
     } else {
       // Invalid credentials
       ScaffoldMessenger.of(context).showSnackBar(

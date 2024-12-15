@@ -8,20 +8,27 @@ class DataSyncService {
   Future<void> syncFirestoreToSQLite(String userId) async {
     try {
       // 1. Sync User Data
-      final userSnapshot =
-      await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      final userData = userSnapshot.data();
-      if (userData != null) {
-        await databaseHelper.insertData('''
-        INSERT OR REPLACE INTO Users (ID, Name, Email, PhoneNumber)
-        VALUES (
-          '${userId}', 
-          '${userData['fullName']}', 
-          '${userData['email']}', 
-          '${userData['phoneNumber']}'
-        );
-      ''');
+      // Fetch all users from Firestore
+      final userCollection = FirebaseFirestore.instance.collection('users');
+      final querySnapshot = await userCollection.get();
 
+      for (var doc in querySnapshot.docs) {
+        final userId = doc.id; // User's ID from Firestore
+        final userData = doc.data(); // User data
+
+        if (userData != null) {
+          // Insert or update the user data in SQLite
+          await databaseHelper.insertData('''
+          INSERT OR REPLACE INTO Users (ID, Name, Email, Password ,PhoneNumber)
+          VALUES (
+            '${userId}', 
+            '${userData['fullName']}', 
+            '${userData['email']}',
+            '${userData['password']}',
+            '${userData['phoneNumber']}'
+          );
+        ''');
+        }
       }
 
       // 2. Sync Friends
@@ -39,8 +46,7 @@ class DataSyncService {
           '${doc.id}'
         );
       ''');
-        print('Syncing user: $userData');
-        print('Syncing friend:${doc.id}');
+
       }
 
       // 3. Sync Events
