@@ -25,53 +25,106 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-    friendId = args['friendId'] ?? ''; // Get friend's ID
+    friendId = args['friendId'] ?? '';
     eventId = args['eventId'] ?? '';
-    eventName=args['eventName']??'';// Get event ID
+    eventName = args['eventName'] ?? '';
   }
 
+  void _pledgeGift(String giftId, String giftName, String category) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .collection('events')
+          .doc(eventId)
+          .collection('gifts')
+          .doc(giftId)
+          .update({
+        'pledged': true,
+        'pledgedBy': userId,
+      });
 
-  void _pledgeGift(String giftId) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(friendId) // Use friendId to access their data
-        .collection('events')
-        .doc(eventId)
-        .collection('gifts')
-        .doc(giftId)
-        .update({
-      'pledged': true, // Mark gift as pledged
-      'pledgedBy': userId, // Record who pledged the gift
-    })
-        .then((_) {
+      // Save pledge details to the current user's "pledged_gifts" collection
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('pledged_gifts')
+          .doc(giftId)
+          .set({
+        'giftName': giftName,
+        'category': category,
+        'eventId': eventId,
+        'eventName': eventName,
+        'friendId': friendId,
+        'pledgedAt': Timestamp.now(),
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gift pledged successfully!')),
       );
-    })
-        .catchError((error) {
+    } catch (e) {
+      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to pledge gift.')),
       );
-    });
+    }
+  }
+
+  void _unpledgeGift(String giftId) async {
+    try {
+      // Update the gift status in the friend's collection
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .collection('events')
+          .doc(eventId)
+          .collection('gifts')
+          .doc(giftId)
+          .update({
+        'pledged': false,
+        'pledgedBy': null,
+      });
+
+      // Remove the gift from the current user's "pledged_gifts"
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('pledged_gifts')
+          .doc(giftId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gift unpledged successfully!')),
+      );
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to unpledge gift.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Friend's Gift List",
-          style: TextStyle(color: Colors.white, fontFamily: "Lobster"),
+        title: FittedBox(
+          fit: BoxFit.scaleDown, // Scales the text to fit the available space
+          child: Text(
+            "$eventName - Gifts",
+            style: const TextStyle(color: Colors.white, fontFamily: "Lobster"),
+          ),
         ),
       ),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
-            .doc(friendId) // Use friendId to get the correct friend's data
+            .doc(friendId)
             .collection('events')
             .doc(eventId)
             .collection('gifts')
-            .orderBy('name', descending: false) // Sort by gift name
+            .orderBy('name', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -89,56 +142,55 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
 
           final gifts = snapshot.data!.docs;
 
-          return Flexible(
-            child: ListView.builder(
-              itemCount: gifts.length,
-              itemBuilder: (context, index) {
-                final gift = gifts[index];
-                final giftId = gift.id;
-                final giftData = gift.data() as Map<String, dynamic>;
+          return ListView.builder(
+            itemCount: gifts.length,
+            itemBuilder: (context, index) {
+              final gift = gifts[index];
+              final giftId = gift.id;
+              final giftData = gift.data() as Map<String, dynamic>;
 
-                // Check if the gift is pledged
-                bool isPledged = giftData['pledged'] ?? false;
+              bool isPledged = giftData['pledged'] ?? false;
+              bool isPledgedByMe = giftData['pledgedBy'] == userId;
 
-                return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  child: ListTile(
-                    title: Text(
-                      giftData['name'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: isPledged ? Colors.grey : const Color(0xFFB03565), // Disable interaction if pledged
-                        decoration: isPledged ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Category: ${giftData['category'] ?? 'N/A'}",
-                          style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
-                        ),
-                        Text(
-                          "Status: ${giftData['status'] ?? 'N/A'}",
-                          style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
-                        ),
-                      ],
-                    ),
-                    trailing: isPledged
-                        ? const Icon(Icons.check, color: Colors.green) // Show check icon if pledged
-                        : ElevatedButton(
-                      onPressed: () => _pledgeGift(giftId),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink,
-                      ),
-                      child: const Text("Pledge"),
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: ListTile(
+                  title: Text(
+                    giftData['name'],
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: isPledgedByMe ? Colors.green : const Color(0xFFB03565),
+                      decoration: isPledgedByMe ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                );
-              },
-            ),
+                  subtitle: Text(
+                    "Category: ${giftData['category'] ?? 'N/A'}",
+                    style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                  ),
+                  trailing: isPledgedByMe
+                      ? ElevatedButton(
+                    onPressed: () => _unpledgeGift(giftId),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                    ),
+                    child: const Text("Unpledge"),
+                  )
+                      : ElevatedButton(
+                    onPressed: () => _pledgeGift(
+                      giftId,
+                      giftData['name'],
+                      giftData['category'] ?? 'N/A',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink,
+                    ),
+                    child: const Text("Pledge"),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),

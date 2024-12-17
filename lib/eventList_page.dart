@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hedieaty/offlineEvents.dart';
 class EventListPage extends StatefulWidget {
   const EventListPage({Key? key}) : super(key: key);
 
@@ -11,11 +12,32 @@ class EventListPage extends StatefulWidget {
 
 class _EventListPageState extends State<EventListPage> {
   late String userId;
-
+  bool isOnline=false;
   @override
   void initState() {
     super.initState();
+    _checkConnectivity();
     userId = FirebaseAuth.instance.currentUser!.uid;
+  }
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    isOnline = connectivityResult != ConnectivityResult.none;
+
+    if (isOnline) {
+      print("am i online? $isOnline");
+      // Fetch online data and sync to SQLite
+      // await _fetchFriendsFromFirestore();
+    } else {
+      // Fetch data from SQLite
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OfflineEventListPage(userId: userId),
+        ),
+      );
+
+
+    }
   }
 
   String _determineEventStatus(dynamic eventDate) {
@@ -30,6 +52,7 @@ class _EventListPageState extends State<EventListPage> {
     } else {
       return "Invalid Date";
     }
+
 
     final now = DateTime.now();
     final difference = eventDateTime.difference(now).inDays;

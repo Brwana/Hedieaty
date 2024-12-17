@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
+import 'offlineEvents.dart';
 
 class OfflineHomePage extends StatefulWidget {
   final String currentUserId;
@@ -12,40 +14,44 @@ class OfflineHomePage extends StatefulWidget {
   State<OfflineHomePage> createState() => _OfflineHomePageState();
 }
 
-
 class _OfflineHomePageState extends State<OfflineHomePage> {
   final DatabaseClass databaseHelper = DatabaseClass();
-  // User? currentUser = FirebaseAuth.instance.currentUser;
   List<Map<String, dynamic>> offlineFriends = [];
   List<Map<String, dynamic>> filteredOfflineFriends = [];
+  List<Map<String, dynamic>> userEvents = [];
+  bool isOnline = false;
 
   @override
   void initState() {
     super.initState();
+    _checkConnectivity();
     _fetchOfflineFriends();
+    _fetchUserEvents();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    isOnline = connectivityResult != ConnectivityResult.none;
+
+    if (isOnline) {
+      Navigator.pushNamed(context, '/home');
+    }
   }
 
   Future<void> _fetchOfflineFriends() async {
     try {
-      // Step 1: Fetch Friend IDs for the current user
-      print("Current UserID: ${widget.currentUserId}");
       final friends = await databaseHelper.readData('''
       SELECT FriendID FROM Friends WHERE UserID = '${widget.currentUserId}';
     ''');
 
-      // Check if any friends were retrieved
       if (friends.isEmpty) {
-        print("No friends found for UserID: ${widget.currentUserId}");
         setState(() {
           offlineFriends = [];
           filteredOfflineFriends = [];
         });
-        return; // Exit if no friends found
+        return;
       }
 
-      print("Friend IDs: $friends");
-
-      // Step 2: Fetch details for each FriendID from the Users table
       List<Map<String, dynamic>> friendDetails = [];
       for (var friend in friends) {
         final friendData = await databaseHelper.readData('''
@@ -53,25 +59,20 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
       ''');
 
         if (friendData.isNotEmpty) {
-          friendDetails.add(friendData[0]); // Add the first row of result
+          friendDetails.add(friendData[0]);
         }
       }
 
-      // Debug log for friend details
-      print("Friend Details: $friendDetails");
-
-      // Step 3: Format data for the UI
       setState(() {
         offlineFriends = friendDetails.map((row) {
           return {
-            'id': row['ID'], // Friend's unique ID
-            'Name': row['Name'] ?? 'Unknown (Offline)', // Friend's name
-            'email': row['Email'] ?? 'N/A', // Friend's email
-            'phone': row['PhoneNumber'] ?? 'N/A', // Friend's phone
+            'id': row['ID'],
+            'Name': row['Name'] ?? 'Unknown (Offline)',
+            'email': row['Email'] ?? 'N/A',
+            'phone': row['PhoneNumber'] ?? 'N/A',
           };
         }).toList();
 
-        // Initialize the filtered list
         filteredOfflineFriends = offlineFriends;
       });
     } catch (e) {
@@ -79,7 +80,19 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
     }
   }
 
+  Future<void> _fetchUserEvents() async {
+    try {
+      final events = await databaseHelper.readData('''
+      SELECT EventID, EventName FROM Events WHERE UserID = '${widget.currentUserId}';
+    ''');
 
+      setState(() {
+        userEvents = events;
+      });
+    } catch (e) {
+      print('Error fetching user events: $e');
+    }
+  }
 
   void _filterOfflineFriends(String query) {
     setState(() {
@@ -93,12 +106,28 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Offline Friends"),
-      ),
-      body: Column(
+        appBar: AppBar(
+          title: Text("Offline Friends"),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.event),
+              onPressed: () {
+                print(widget.currentUserId);
+                // Navigate to the OfflineEventListPage when the icon is clicked
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OfflineEventListPage(userId: widget.currentUserId),
+                  ),
+                );
+                print("Navigation triggered to OfflineEventListPage");
+              },
+            ),
+          ],
+        ),
+
+        body: Column(
         children: [
-          // Search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 25.0),
             child: Row(
@@ -118,7 +147,6 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
               ],
             ),
           ),
-          // Friends list
           Expanded(
             child: offlineFriends.isEmpty
                 ? Center(
@@ -148,18 +176,15 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
                   ),
                   child: Row(
                     children: [
-                      // Friend avatar
                       CircleAvatar(
                         radius: 30,
                         backgroundImage: AssetImage('asset/offline.jpg'),
                       ),
                       SizedBox(width: 15),
-                      // Friend details
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Friend's name
                             Text(
                               friend['Name'] ?? 'Unknown',
                               style: TextStyle(
@@ -169,8 +194,7 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
                               ),
                             ),
                             SizedBox(height: 5),
-                            // Friend's email
-                            if (friend['email'] != null) ...[
+                            if (friend['email'] != null)
                               Text(
                                 'Email: ${friend['email']}',
                                 style: TextStyle(
@@ -178,10 +202,7 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
                                   color: Colors.grey[700],
                                 ),
                               ),
-                              SizedBox(height: 5),
-                            ],
-                            // Friend's phone number
-                            if (friend['phone'] != null) ...[
+                            if (friend['phone'] != null)
                               Text(
                                 'Phone: ${friend['phone']}',
                                 style: TextStyle(
@@ -189,28 +210,9 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
                                   color: Colors.grey[700],
                                 ),
                               ),
-                              SizedBox(height: 5),
-                            ],
-                            // Friend's event count
-                            Row(
-                              children: [
-                                Icon(Icons.event,
-                                    color: Color(0xFFB03565), size: 18),
-                                SizedBox(width: 5),
-                                Text(
-                                  friend['eventCount'] != null &&
-                                      friend['eventCount'] > 0
-                                      ? "Upcoming Events: ${friend['eventCount']}"
-                                      : "No Upcoming Events",
-                                  style: TextStyle(
-                                      color: Color(0xFFB03565)),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
-                      // Navigation arrow
                       Icon(Icons.arrow_forward_ios, color: Colors.grey),
                     ],
                   ),
@@ -222,5 +224,4 @@ class _OfflineHomePageState extends State<OfflineHomePage> {
       ),
     );
   }
-
 }

@@ -241,7 +241,7 @@ class _MyProfileState extends State<MyProfile> {
                         radius: 60,
                         backgroundImage: (userData!['profileImage'] != null && userData!['profileImage'].isNotEmpty)
                             ? AssetImage(userData!['profileImage'])
-                            : const AssetImage('asset/default_profile.jpg'),
+                            : AssetImage('asset/profile.jpg'),
                       ),
                     ),
                     Positioned(

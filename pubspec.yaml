@@ -38,6 +38,7 @@ flutter:
     - asset/present.jpg
     - asset/signup.jpg
     - asset/offline.jpg
+    - asset/profile.jpg
 
   #   - images/a_dot_ham.jpeg
 

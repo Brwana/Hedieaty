@@ -22,7 +22,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _checkConnectivity();
+     _checkConnectivity();
   }
 
   void _handleMenuSelection(String value) {
@@ -30,8 +30,8 @@ class _HomePageState extends State<HomePage> {
       case 'Show Event List':
         Navigator.pushNamed(context, '/EventList');
         break;
-      case 'Show Gift List':
-        Navigator.pushNamed(context, '/GiftList');
+      case 'Show My Pledged Gifts':
+        Navigator.pushNamed(context, '/pledged_gifts');
         break;
       case 'Create Your Own Event/List':
         Navigator.pushNamed(context, '/createEvent');
@@ -89,17 +89,26 @@ class _HomePageState extends State<HomePage> {
               onPressed: () async {
                 if (phoneNumber.isNotEmpty) {
                   try {
-                    QuerySnapshot snapshot = await FirebaseFirestore.instance
+                    // Fetch the friend's data
+                    QuerySnapshot friendSnapshot = await FirebaseFirestore.instance
                         .collection('users')
                         .where('phoneNumber', isEqualTo: phoneNumber)
                         .get();
 
-                    if (snapshot.docs.isNotEmpty) {
+                    if (friendSnapshot.docs.isNotEmpty) {
                       final friendData =
-                      snapshot.docs.first.data() as Map<String, dynamic>;
-                      final friendId = snapshot.docs.first.id;
+                      friendSnapshot.docs.first.data() as Map<String, dynamic>;
+                      final friendId = friendSnapshot.docs.first.id;
 
-                      // Add to Firestore
+                      // Fetch the current user's data
+                      DocumentSnapshot currentUserSnapshot = await FirebaseFirestore
+                          .instance
+                          .collection('users')
+                          .doc(currentUser!.uid)
+                          .get();
+                      final currentUserData = currentUserSnapshot.data() as Map<String, dynamic>;
+
+                      // Add the friend to the current user's "friends" subcollection
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(currentUser!.uid)
@@ -109,7 +118,21 @@ class _HomePageState extends State<HomePage> {
                         'id': friendId,
                         'fullName': friendData['fullName'],
                         'phoneNumber': friendData['phoneNumber'],
-                        'profileImage': friendData['profileImage'],
+                        'profileImage': friendData['profileImage'] ?? '',
+                        'eventCount': 0,
+                      });
+
+                      // Add the current user to the friend's "friends" subcollection
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(friendId)
+                          .collection('friends')
+                          .doc(currentUser!.uid)
+                          .set({
+                        'id': currentUser!.uid,
+                        'fullName': currentUserData['fullName'] ?? 'Unknown',
+                        'phoneNumber': currentUserData['phoneNumber'] ?? '',
+                        'profileImage': currentUserData['profileImage'] ?? '',
                         'eventCount': 0,
                       });
 
@@ -275,8 +298,8 @@ class _HomePageState extends State<HomePage> {
                   child: Text('Show Event List'),
                 ),
                 PopupMenuItem(
-                  value: 'Show Gift List',
-                  child: Text('Show Gift List'),
+                  value: 'Show My Pledged Gifts',
+                  child: Text('My pledged Gifts'),
                 ),
                 PopupMenuItem(
                   value: 'Create Your Own Event/List',
@@ -363,7 +386,7 @@ class _HomePageState extends State<HomePage> {
                           backgroundImage: (friend['profileImage'] != null &&
                               friend['profileImage'].isNotEmpty)
                               ? AssetImage(friend['profileImage'])
-                              : AssetImage('asset/pp_1.jpg')
+                              : AssetImage('asset/profile.jpg')
                           as ImageProvider,
                         ),
                         SizedBox(width: 15),

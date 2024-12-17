@@ -9,6 +9,7 @@ import 'package:hedieaty/giftDetails_page.dart';
 import 'package:hedieaty/splash_screen.dart';
 import 'package:hedieaty/signup_page.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'MyPledgedGifts.dart';
 import 'firebase_options.dart';
 import 'package:hedieaty/createEvent.dart';
 import 'package:hedieaty/editEvent_page.dart';
@@ -16,6 +17,8 @@ import 'package:hedieaty/editGift_page.dart';
 import 'friend_Event.dart';
 import 'friend_gifts.dart';
 import 'package:hedieaty/offlineHome.dart';
+
+import 'offlineEvents.dart';
 
 
 void main() async {
@@ -65,7 +68,8 @@ class _MyAppState extends State<MyApp> {
         },
         '/friend_event':(context)=>FriendEventPage(),
         '/friend_gifts':(context)=>FriendGiftListPage(),
-        // '/offlineHomePage':(context)=>OfflineHomePage(),
+        // '/offlineEventlsit':(context)=>OfflineEventListPage(userId: '',),
+        '/pledged_gifts':(context)=>MyPledgedGiftsPage(),
       },
       home: Scaffold(
         appBar: AppBar(

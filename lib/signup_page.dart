@@ -55,7 +55,7 @@ class _SignUpPageState extends State<SignUpPage> {
             'phoneNumber': phoneNumber,
             'password':password,
             'createdAt': FieldValue.serverTimestamp(),
-            'profileImage': 'asset/default_profile.jpg',
+            'profileImage': 'asset/profile.jpg'
           });
           await dbHelper.insertData('''
                     INSERT INTO Users (ID, Name, Email, Password, PhoneNumber)
