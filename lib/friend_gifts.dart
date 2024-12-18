@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hedieaty/NotificationService.dart';
 
 class FriendGiftListPage extends StatefulWidget {
   const FriendGiftListPage({Key? key}) : super(key: key);
@@ -11,14 +12,18 @@ class FriendGiftListPage extends StatefulWidget {
 
 class _FriendGiftListPageState extends State<FriendGiftListPage> {
   late String userId;
+  late String userName;
   late String friendId;
   late String eventId;
   late String eventName;
+
+
 
   @override
   void initState() {
     super.initState();
     userId = FirebaseAuth.instance.currentUser!.uid;
+
   }
 
   @override
@@ -32,6 +37,20 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
 
   void _pledgeGift(String giftId, String giftName, String category) async {
     try {
+      // Fetch the user document from Firestore
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users') // Replace 'users' with your collection name
+          .doc(userId)
+          .get();
+      // Extract the 'fullName' field from the document
+      if (userDoc.exists) {
+        userName=userDoc.get('fullName');
+        print("userName: $userName"); // Ensure 'fullName' exists in Firestore
+      } else {
+        print("User document does not exist");
+        return null;
+      }
+      // Update the pledged status for the gift
       await FirebaseFirestore.instance
           .collection('users')
           .doc(friendId)
@@ -43,6 +62,15 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
         'pledged': true,
         'pledgedBy': userId,
       });
+      // Get the friend's device token from Firestore
+      DocumentSnapshot friendDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .get();
+
+
+      String? friendDeviceToken = friendDoc['deviceToken'];  // Assuming device token is stored in the user's Firestore document
+        print("friendDevice : $friendDeviceToken");
 
       // Save pledge details to the current user's "pledged_gifts" collection
       await FirebaseFirestore.instance
@@ -62,6 +90,19 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gift pledged successfully!')),
       );
+      if (friendDeviceToken != null) {
+        // Send a notification to the friend
+        await PushNotifications.SendNotificationToPledgedFriend(
+          friendDeviceToken,
+          context,
+          giftId,
+          giftName,
+          eventName,
+          userName ?? 'Unknown User',
+        );
+      }
+
+
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,6 +110,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
       );
     }
   }
+
 
   void _unpledgeGift(String giftId) async {
     try {

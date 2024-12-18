@@ -10,6 +10,13 @@ plugins {
 dependencies{
     implementation platform('com.google.firebase:firebase-bom:33.6.0')
     implementation 'com.google.firebase:firebase-analytics'
+//    implementation 'com.android.tools:desugar_jdk_libs:1.1.5'
+//    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.3"
+
+    //    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+
+
 }
 android {
     namespace = "com.example.hedieaty"
@@ -17,8 +24,12 @@ android {
     ndkVersion = "25.1.8937393"
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    lintOptions {
+        checkReleaseBuilds false
     }
 
     kotlinOptions {
@@ -41,8 +52,19 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so flutter run --release works.
             signingConfig = signingConfigs.debug
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Enable code shrinking (minification)
+            minifyEnabled true
+
+            // Enable resource shrinking (removes unused resources)
+            shrinkResources true
+
+            // Use ProGuard or R8 for minification (ProGuard is the default)
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    namespace = "com.example.hedieaty"
 }
 
 flutter {

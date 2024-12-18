@@ -136,6 +136,7 @@ class _FriendEventPageState extends State<FriendEventPage> {
               'eventName': eventData['name'], // Event name, or other data you want to pass
             },
           );
+
         },
       ),
 

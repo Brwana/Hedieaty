@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
   }
+
 
   Future<bool> _isOnline() async {
       var connectivityResult = await Connectivity().checkConnectivity();
@@ -63,6 +65,17 @@ class _LoginPageState extends State<LoginPage> {
             .doc(user.uid)
             .get();
 
+        FirebaseMessaging messaging = FirebaseMessaging.instance;
+        String? token = await messaging.getToken();
+        if (token != null) {
+          // Save the token to the Firestore user document
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({'deviceToken': token});
+        }
+
+
         if (userDoc.exists) {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
           print('User Data: $userData');
@@ -73,11 +86,10 @@ class _LoginPageState extends State<LoginPage> {
           await syncService.queryAndPrintTable('Friends');
           await syncService.queryAndPrintTable('Events');
           await syncService.queryAndPrintTable('Gifts');
-          // Sync data to local SQLite database
-
           // Navigate to the home screen
           Navigator.pushNamed(context, '/home');
         }
+
       }
     } catch (e) {
       print('Online login failed: $e');
