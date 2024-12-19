@@ -10,6 +10,8 @@ class SelectPhotoPage extends StatelessWidget {
     "asset/pp_4.jpg",
     "asset/pp_5.jpg",
     "asset/pp_6.jpg",
+    "asset/novel_science_fiction.jpg",
+    "asset/necklace.jpg",
 
     // Add more image paths here
   ];
@@ -29,15 +31,6 @@ class SelectPhotoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Select Photo")),
-        body: const Center(child: Text("No user is logged in.")),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Select a Photo"),
@@ -53,11 +46,9 @@ class SelectPhotoPage extends StatelessWidget {
           String imagePath = assetImages[index];
 
           return GestureDetector(
-            onTap: () async {
-              // When an image is tapped, update the profile image in Firestore
-              await _updateProfileImage(imagePath, currentUser);
-              // You can also navigate back after updating the image
-              Navigator.pop(context);
+            onTap: () {
+              // Return the selected image path
+              Navigator.pop(context, imagePath);
             },
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -71,4 +62,5 @@ class SelectPhotoPage extends StatelessWidget {
       ),
     );
   }
+
 }

@@ -55,6 +55,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
               final gift = pledgedGifts[index];
               final giftData = gift.data() as Map<String, dynamic>;
 
+
               return Card(
                 elevation: 2,
                 margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -68,7 +69,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                     children: [
                       Text("Category: ${giftData['category']}"),
                       Text("Event: ${giftData['eventName']}"),
-                      Text("Friend ID: ${giftData['friendId']}"),
+                      Text("Friend Name: ${giftData['friendName']}"),
                     ],
                   ),
                 ),

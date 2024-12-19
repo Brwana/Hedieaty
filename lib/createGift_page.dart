@@ -1,30 +1,25 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/selectphoto_page.dart';
 
-class EditGift extends StatefulWidget {
-  final String eventId; // Event ID to identify the event
-  final String giftId; // Gift ID to identify the gift
-  const EditGift({Key? key, required this.giftId, required this.eventId})
-      : super(key: key);
+class CreateGift extends StatefulWidget {
+  final String eventId; // Event ID under which the gift will be created
+  final String userId;  // User ID associated with the gift creation
+
+  // Constructor to accept eventId and userId
+  const CreateGift({Key? key, required this.eventId, required this.userId}) : super(key: key);
 
   @override
-  State<EditGift> createState() => _EditGiftState();
+  State<CreateGift> createState() => _CreateGiftState();
 }
 
-class _EditGiftState extends State<EditGift> {
+class _CreateGiftState extends State<CreateGift> {
   final _formKey = GlobalKey<FormState>();
   String giftName = '';
   String giftDescription = '';
   double giftPrice = 0.0;
   String? selectedCategory;
-  bool isLoading = true;
-  String errorMessage = '';
-  String imageUrl='';
-  String selectedPhoto='';
+  String? selectedImagePath;
 
   final List<String> categories = [
     'Electronics',
@@ -34,11 +29,6 @@ class _EditGiftState extends State<EditGift> {
     'Others',
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadGiftDetails();
-  }
   Future<void> _selectImage() async {
     final imagePath = await Navigator.push(
       context,
@@ -46,109 +36,63 @@ class _EditGiftState extends State<EditGift> {
     );
     if (imagePath != null) {
       setState(() {
-        selectedPhoto = imagePath;
-        imageUrl = ''; // Clear imageUrl to prioritize the selected photo
+        selectedImagePath = imagePath;
       });
     }
   }
 
-
-  /// Load the gift details from Firestore
-  Future<void> _loadGiftDetails() async {
-    try {
-
-      final userId = FirebaseAuth.instance.currentUser!.uid;
-      final giftRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('events')
-          .doc(widget.eventId)
-          .collection('gifts')
-          .doc(widget.giftId);
-
-      final giftSnapshot = await giftRef.get();
-      print('Gift Snapshot: $giftSnapshot');
-      if (giftSnapshot.exists) {
-        final giftData = giftSnapshot.data()!;
-        setState(() {
-          giftName = giftData['name'] ?? '';
-          giftDescription = giftData['description'] ?? '';
-          giftPrice = giftData['price']?.toDouble() ?? 0.0;
-          selectedCategory = giftData['category'] ?? categories.first;
-          isLoading = false;
-          imageUrl=giftData['imagePath']??'asset/present.jpg';
-
-        });
-      } else {
-        print('Gift not found');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gift not found.')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      print('Error loading gift details: $e');
+  Future<void> _createGift() async {
+    if (widget.userId.isEmpty || widget.eventId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load gift details.')),
+        const SnackBar(content: Text('User ID or Event ID is invalid!')),
       );
-      Navigator.pop(context);
+      return;
     }
-  }
 
-
-  Future<void> _updateGift() async {
-    if (_formKey.currentState!.validate() && selectedCategory != null) {
+    if (_formKey.currentState!.validate() && selectedCategory != null && selectedImagePath != null) {
       _formKey.currentState!.save();
-      try {
-        final userId = FirebaseAuth.instance.currentUser!.uid;
-        final giftRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('events')
-            .doc(widget.eventId) // Event ID
-            .collection('gifts')
-            .doc(widget.giftId); // Gift ID
 
-        await giftRef.update({
+      try {
+        final giftsRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.userId)
+            .collection('events')
+            .doc(widget.eventId)
+            .collection('gifts');
+
+        await giftsRef.add({
           'name': giftName,
           'description': giftDescription,
           'price': giftPrice,
           'category': selectedCategory,
-          'updatedAt': FieldValue.serverTimestamp(),
-          'imagePath':selectedPhoto,
+          'imagePath': selectedImagePath, // Save image path
+          'status': 'Available', // Explicitly set status to Available
+          'createdBy': widget.userId,
+          'createdAt': FieldValue.serverTimestamp(),
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gift updated successfully!')),
+          const SnackBar(content: Text('Gift added successfully!')),
         );
-        Navigator.pop(context); // Navigate back to the previous screen
+        Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update gift.')),
+          const SnackBar(content: Text('Failed to add gift.')),
         );
         print('Error: $e');
       }
-    } else if (selectedCategory == null) {
+    } else if (selectedCategory == null || selectedImagePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category.')),
+        const SnackBar(content: Text('Please select all required fields.')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit Gift'),
-          backgroundColor: const Color(0xFFE91E63),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Gift'),
+        title: const Text('Add Gift'),
         backgroundColor: const Color(0xFFE91E63),
       ),
       body: SingleChildScrollView(
@@ -156,11 +100,11 @@ class _EditGiftState extends State<EditGift> {
           padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
-            child: Column( // Use Column, not inside CustomMultiChildLayout
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 10),
                 TextFormField(
-                  initialValue: giftName,
                   decoration: InputDecoration(
                     labelText: 'Gift Name',
                     border: OutlineInputBorder(
@@ -179,14 +123,12 @@ class _EditGiftState extends State<EditGift> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
-                  initialValue: giftDescription,
                   decoration: InputDecoration(
                     labelText: 'Description',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  maxLines: 3,
                   onSaved: (value) {
                     giftDescription = value!.trim();
                   },
@@ -199,7 +141,6 @@ class _EditGiftState extends State<EditGift> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
-                  initialValue: giftPrice.toString(),
                   decoration: InputDecoration(
                     labelText: 'Price',
                     prefixText: '\$',
@@ -234,15 +175,12 @@ class _EditGiftState extends State<EditGift> {
                   items: categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
-                      child: Text(
-                        category,
-                        style: const TextStyle(fontFamily: "Caveat", fontSize: 20),
-                      ),
+                      child: Text(category),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      selectedCategory = value!;
+                      selectedCategory = value;
                     });
                   },
                   validator: (value) {
@@ -256,24 +194,17 @@ class _EditGiftState extends State<EditGift> {
                 GestureDetector(
                   onTap: _selectImage,
                   child: Container(
-                    height: 150, // Fixed height of the container
-                    width: double.infinity, // Full-width container
+                    height: 150,
+                    width: double.infinity,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: (selectedPhoto.isNotEmpty) // Prioritize the selected photo
+                      child: selectedImagePath != null
                           ? Image.asset(
-                        selectedPhoto,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        height: 150,
-                      )
-                          : (imageUrl.isNotEmpty) // Fallback to imageUrl if no photo is selected
-                          ? Image.asset(
-                        imageUrl,
+                        selectedImagePath!,
                         fit: BoxFit.contain,
                         width: double.infinity,
                         height: 150,
@@ -284,19 +215,16 @@ class _EditGiftState extends State<EditGift> {
                     ),
                   ),
                 ),
-
-
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _updateGift,
+                    onPressed: _createGift,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE91E63),
                     ),
-
                     child: const Text(
-                      'Update Gift',
+                      'Add Gift',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -311,9 +239,4 @@ class _EditGiftState extends State<EditGift> {
       ),
     );
   }
-
-
-
-
-
 }

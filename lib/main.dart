@@ -5,7 +5,7 @@ import 'package:hedieaty/theme_data.dart';
 import 'package:hedieaty/profile_page.dart';
 import 'package:hedieaty/eventList_page.dart';
 import 'package:hedieaty/giftList_page.dart';
-import 'package:hedieaty/giftDetails_page.dart';
+import 'package:hedieaty/createGift_page.dart';
 import 'package:hedieaty/splash_screen.dart';
 import 'package:hedieaty/signup_page.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -119,7 +119,7 @@ class _MyAppState extends State<MyApp> {
         '/Profile':(context)=> MyProfile(),
         '/EventList':(context)=>EventListPage(),
         '/GiftList':(context)=>GiftListPage(),
-        '/GiftDetailsList':(context)=>CreateGift(eventId: '',userId:''),
+        '/createGift':(context)=>CreateGift(eventId: '',userId:''),
         '/signup':(context)=>SignUpPage(),
         '/login':(context)=>LoginPage(),
         '/createEvent':(context)=>CreateEvent(),

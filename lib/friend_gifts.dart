@@ -17,13 +17,10 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
   late String eventId;
   late String eventName;
 
-
-
   @override
   void initState() {
     super.initState();
     userId = FirebaseAuth.instance.currentUser!.uid;
-
   }
 
   @override
@@ -59,7 +56,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
           .collection('gifts')
           .doc(giftId)
           .update({
-        'pledged': true,
+        'status': 'Pledged',
         'pledgedBy': userId,
       });
       // Get the friend's device token from Firestore
@@ -70,7 +67,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
 
 
       String? friendDeviceToken = friendDoc['deviceToken'];  // Assuming device token is stored in the user's Firestore document
-        print("friendDevice : $friendDeviceToken");
+      print("friendDevice : $friendDeviceToken");
 
       // Save pledge details to the current user's "pledged_gifts" collection
       await FirebaseFirestore.instance
@@ -83,7 +80,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
         'category': category,
         'eventId': eventId,
         'eventName': eventName,
-        'friendId': friendId,
+        'friendName': friendDoc['fullName'],
         'pledgedAt': Timestamp.now(),
       });
 
@@ -101,8 +98,6 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
           userName ?? 'Unknown User',
         );
       }
-
-
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,10 +106,8 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
     }
   }
 
-
   void _unpledgeGift(String giftId) async {
     try {
-      // Update the gift status in the friend's collection
       await FirebaseFirestore.instance
           .collection('users')
           .doc(friendId)
@@ -123,11 +116,10 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
           .collection('gifts')
           .doc(giftId)
           .update({
-        'pledged': false,
+        'status': 'Available',
         'pledgedBy': null,
       });
 
-      // Remove the gift from the current user's "pledged_gifts"
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -151,14 +143,13 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
     return Scaffold(
       appBar: AppBar(
         title: FittedBox(
-          fit: BoxFit.scaleDown, // Scales the text to fit the available space
+          fit: BoxFit.scaleDown,
           child: Text(
             "$eventName - Gifts",
             style: const TextStyle(color: Colors.white, fontFamily: "Lobster"),
           ),
         ),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -190,44 +181,42 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
               final gift = gifts[index];
               final giftId = gift.id;
               final giftData = gift.data() as Map<String, dynamic>;
-
-              bool isPledged = giftData['pledged'] ?? false;
-              bool isPledgedByMe = giftData['pledgedBy'] == userId;
+              final imageUrl = giftData['imagePath'];
+              final isPledgedByMe = giftData['pledgedBy'] == userId;
 
               return Card(
-                elevation: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                  leading: CircleAvatar(
+                    backgroundImage: imageUrl != null
+                        ? AssetImage(imageUrl)
+                        : const AssetImage('asset/present.jpg') as ImageProvider,
+                    radius: 40,
+                  ),
                   title: Text(
                     giftData['name'],
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: isPledgedByMe ? Colors.green : const Color(0xFFB03565),
+                      fontSize: 22,
+                      color: isPledgedByMe ? Colors.grey : const Color(0xFFB03565),
                       decoration: isPledgedByMe ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   subtitle: Text(
                     "Category: ${giftData['category'] ?? 'N/A'}",
-                    style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                    style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
                   ),
                   trailing: isPledgedByMe
                       ? ElevatedButton(
                     onPressed: () => _unpledgeGift(giftId),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                     child: const Text("Unpledge"),
                   )
                       : ElevatedButton(
-                    onPressed: () => _pledgeGift(
-                      giftId,
-                      giftData['name'],
-                      giftData['category'] ?? 'N/A',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
-                    ),
+                    onPressed: () => _pledgeGift(giftId, giftData['name'], giftData['category'] ?? 'N/A'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
                     child: const Text("Pledge"),
                   ),
                 ),

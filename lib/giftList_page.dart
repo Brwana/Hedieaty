@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hedieaty/giftDetails_page.dart';
+import 'package:hedieaty/createGift_page.dart';
+import 'giftDetailsPage.dart';
 
 class GiftListPage extends StatefulWidget {
   const GiftListPage({Key? key}) : super(key: key);
@@ -30,7 +31,7 @@ class _GiftListPageState extends State<GiftListPage> {
 
     if (args != null) {
       eventId = args['eventId'] ?? '';
-      eventName=args['eventName']??'';// Safely set eventId
+      eventName = args['eventName'] ?? ''; // Safely set eventId
 
       // Fetch the event name from Firestore
       _fetchEventName();
@@ -118,8 +119,6 @@ class _GiftListPageState extends State<GiftListPage> {
             style: const TextStyle(color: Colors.white, fontFamily: "Lobster"),
           ),
         ),
-
-
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -158,48 +157,77 @@ class _GiftListPageState extends State<GiftListPage> {
               final gift = gifts[index];
               final giftId = gift.id;
               final giftData = gift.data() as Map<String, dynamic>;
+              final imageUrl = giftData['imagePath'];
+              // final pledged = giftData['pledged'] ?? false;
+              final status = giftData['status'] ?? 'Available';
 
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: ListTile(
-                  title: Text(
-                    giftData['name'],
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: (giftData['pledged'] ?? false) ? Colors.grey : const Color(0xFFB03565),
-                      decoration: (giftData['pledged'] ?? false) ? TextDecoration.lineThrough :TextDecoration.none,
+              return GestureDetector(
+                onTap: () {
+                  // Navigate to the GiftDetailsPage on tap
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GiftDetailsPage(
+                        eventId: eventId,
+                        giftId: gift.id,
+                        userId: userId,
+                      ),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Category: ${giftData['category'] ?? 'N/A'}",
-                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                  );
+                },
+                child: Card(
+                  elevation: 4, // Increase elevation for a thicker card shadow
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0), // Increased vertical margin
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0), // Increase padding for larger height
+                    leading: CircleAvatar(
+                      backgroundImage: imageUrl != null
+                          ? AssetImage(imageUrl)
+                          : const AssetImage('asset/present.jpg') as ImageProvider, // default image if no URL
+                      radius: 40, // Increase radius for a larger avatar
+                    ),
+                    title: Text(
+                      giftData['name'],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22, // Increase font size for the title
+                        color: status == 'Pledged' ? Colors.grey : const Color(0xFFB03565),
+                        decoration: status == 'Pledged' ? TextDecoration.lineThrough : null
+                        ,
                       ),
-                      Text(
-                        "Status: ${giftData['status'] ?? 'N/A'}",
-                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
-                      ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Color(0xFFB03565)),
-                        onPressed: () => _editGift(giftId),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.black54),
-                        onPressed: () => _deleteGift(giftId),
-                      ),
-                    ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Category: ${giftData['category'] ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
+                        ),
+                        Text(
+                          "Status: $status",
+                          style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
+                        ),
+                      ],
+                    ),
+                    trailing: status == 'Pledged'
+                        ? null // Don't show the icons if pledged
+                        : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Color(0xFFB03565)),
+                          onPressed: () => _editGift(giftId),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.black54),
+                          onPressed: () => _deleteGift(giftId),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
+
             },
           );
         },

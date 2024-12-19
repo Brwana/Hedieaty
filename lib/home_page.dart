@@ -18,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> friends = [];
   List<Map<String, dynamic>> filteredFriends = [];
   bool isOnline = false;
+  int eventCount=0;
 
   @override
   void initState() {
@@ -176,7 +177,24 @@ class _HomePageState extends State<HomePage> {
       await _fetchFriendsFromSQLite();
     }
   }
+  Future<int> getFriendEventCount(String friendId) async {
+    try {
+      // Reference to the user's events subcollection
+      CollectionReference eventsRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .collection('events');
 
+      // Get the documents in the subcollection
+      QuerySnapshot snapshot = await eventsRef.get();
+
+      // Return the length of the documents
+      return snapshot.docs.length;
+    } catch (e) {
+      print("Error fetching event count: $e");
+      return 0;
+    }
+  }
   Future<void> _fetchFriendsFromFirestore() async {
     try {
       currentUser = FirebaseAuth.instance.currentUser;
@@ -405,19 +423,37 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(height: 5),
                               Row(
                                 children: [
-                                  Icon(Icons.event,
-                                      color: Color(0xFFB03565), size: 18),
+                                  Icon(Icons.event, color: Color(0xFFB03565), size: 18),
                                   SizedBox(width: 5),
-                                  Text(
-                                    friend['eventCount'] != null &&
-                                        friend['eventCount'] > 0
-                                        ? "Upcoming Events: ${friend['eventCount']}"
-                                        : "No Upcoming Events",
-                                    style:
-                                    TextStyle(color: Color(0xFFB03565)),
+                                  FutureBuilder<int>(
+                                    future: getFriendEventCount(friend['id']), // Pass the friend's ID here
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return Text(
+                                          "Loading...",
+                                          style: TextStyle(color: Color(0xFFB03565)),
+                                        );
+                                      } else if (snapshot.hasError) {
+                                        return Text(
+                                          "Error loading events",
+                                          style: TextStyle(color: Colors.red),
+                                        );
+                                      } else if (snapshot.hasData && snapshot.data! > 0) {
+                                        return Text(
+                                          "Upcoming Events: ${snapshot.data}",
+                                          style: TextStyle(color: Color(0xFFB03565)),
+                                        );
+                                      } else {
+                                        return Text(
+                                          "No Upcoming Events",
+                                          style: TextStyle(color: Color(0xFFB03565)),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ],
                               ),
+
                             ],
                           ),
                         ),
