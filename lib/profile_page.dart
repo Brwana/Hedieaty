@@ -17,6 +17,9 @@ class _MyProfileState extends State<MyProfile> {
   List<Map<String, dynamic>> events = [];
   TextEditingController nameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
+  TextEditingController currentPasswordController = TextEditingController();
+  TextEditingController newPasswordController = TextEditingController();
+  bool notificationsEnabled = false; // Default to false
 
   @override
   void initState() {
@@ -42,6 +45,7 @@ class _MyProfileState extends State<MyProfile> {
             // Populate the controllers with current user data
             nameController.text = userData!['fullName'] ?? '';
             phoneController.text = userData!['phoneNumber'] ?? '';
+            notificationsEnabled = userData!['notificationsEnabled'] ?? false;
           });
         }
       }
@@ -73,6 +77,7 @@ class _MyProfileState extends State<MyProfile> {
       print("Error updating Firestore: $e");
     }
   }
+
 
   // Show edit dialog for name and phone number
   void _editFullName() {
@@ -153,7 +158,15 @@ class _MyProfileState extends State<MyProfile> {
       },
     );
   }
-
+  Future<void> _signout() async {
+    try {
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      print('Error during logout: $e');
+      _showErrorDialog('Failed to log out. Please try again.');
+    }
+  }
   // Show error dialog
   void _showErrorDialog(String message) {
     showDialog(
@@ -186,6 +199,21 @@ class _MyProfileState extends State<MyProfile> {
       print("Error updating Firestore: $e");
     }
   }
+  void _handleMenuSelection(String value) {
+    switch (value) {
+      case 'Show Event List':
+        Navigator.pushNamed(context, '/EventList');
+        break;
+      case 'Show My Pledged Gifts':
+        Navigator.pushNamed(context, '/pledged_gifts');
+        break;
+      case 'Create Your Own Event/List':
+        Navigator.pushNamed(context, '/createEvent');
+        break;
+      case'Log out':
+        _signout();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,12 +221,43 @@ class _MyProfileState extends State<MyProfile> {
       appBar: AppBar(
         title: const Text("Profile Page"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              // Navigate to settings (add your settings page logic here)
-            },
-          ),
+          Theme(
+            data: Theme.of(context).copyWith(
+              popupMenuTheme: PopupMenuThemeData(
+                color: Colors.white, // Background color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25), // Rounded border
+                ),
+                textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.pink, // Default text color
+                ),
+              ),
+            ),
+            child: PopupMenuButton<String>(
+              onSelected: _handleMenuSelection,
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: 'Show Event List',
+                  child: Text('Show Event List'),
+                ),
+                PopupMenuItem(
+                  value: 'Show My Pledged Gifts',
+                  child: Text('My pledged Gifts'),
+                ),
+                PopupMenuItem(
+                  value: 'Create Your Own Event/List',
+                  child: Text('Create Your Own Event/List'),
+                ),
+                PopupMenuItem(
+                  value: 'Log out',
+                  child: Text('Log out', style: TextStyle(color: Colors.pink)),
+                ),
+              ],
+              icon: Icon(Icons.more_vert, color: Colors.white),
+            ),
+          )
         ],
       ),
       body: currentUser == null
@@ -334,36 +393,8 @@ class _MyProfileState extends State<MyProfile> {
                         ],
                       ),
                     ),
+                    SizedBox(height:16),
                   ],
-                ),
-              ),
-              // Events Section
-              Expanded(
-                child: ListView.builder(
-                  itemCount: events.length,
-                  itemBuilder: (context, index) {
-                    final event = events[index];
-                    return Card(
-                      child: ListTile(
-                        title: Text(event['title'] ?? 'Event Title'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List<String>.from(event['gifts'] ?? [])
-                              .map((gift) => Text("• $gift"))
-                              .toList(),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  // Logic to view pledged gifts (can be added later)
-                },
-                child: const Text(
-                  "My Pledged Gifts",
-                  style: TextStyle(color: Colors.pink),
                 ),
               ),
             ],
