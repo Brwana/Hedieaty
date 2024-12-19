@@ -16,6 +16,7 @@ class _GiftListPageState extends State<GiftListPage> {
   late String eventId;
   String? eventName;
   late DocumentSnapshot<Map<String, dynamic>> eventDoc;
+  String _sortBy = 'name';
 
 
   @override
@@ -92,6 +93,8 @@ class _GiftListPageState extends State<GiftListPage> {
     });
   }
 
+
+
   Future<void> _addGift() async {
     final newGift = await Navigator.push(
       context,
@@ -109,6 +112,21 @@ class _GiftListPageState extends State<GiftListPage> {
       });
     }
   }
+  void _sortGifts(List<QueryDocumentSnapshot> gifts) {
+    gifts.sort((a, b) {
+      final aData = a.data() as Map<String, dynamic>;
+      final bData = b.data() as Map<String, dynamic>;
+
+      if (_sortBy == 'status') {
+        final aStatus = aData['status'] ?? 'Available';
+        final bStatus = bData['status'] ?? 'Available';
+        return aStatus.compareTo(bStatus);
+      } else {
+        return aData['name'].toString().compareTo(bData['name'].toString());
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +146,43 @@ class _GiftListPageState extends State<GiftListPage> {
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body:Column(
+          children: [
+      // Dropdown Menu for Sorting
+      Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Row(
+        children: [
+          DropdownButton<String>(
+            value: _sortBy,
+            dropdownColor: Colors.white,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB03565),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'name',
+                child: Text("Name"),
+              ),
+              DropdownMenuItem(
+                value: 'status',
+                child: Text("Status"),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _sortBy = value;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+    ),
+      Expanded(child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
@@ -152,6 +206,7 @@ class _GiftListPageState extends State<GiftListPage> {
           }
 
           final gifts = snapshot.data!.docs;
+          _sortGifts(gifts);
 
           return ListView.builder(
             itemCount: gifts.length,
@@ -233,11 +288,13 @@ class _GiftListPageState extends State<GiftListPage> {
                   ),
                 ),
               );
-
             },
           );
         },
-      ),
-    );
+      ),),
+    ],),);
+
   }
 }
+
+
