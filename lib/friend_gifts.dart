@@ -59,6 +59,15 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
         'status': 'Pledged',
         'pledgedBy': userId,
       });
+
+      DocumentSnapshot giftDoc = await FirebaseFirestore.instance
+          .collection('users')
+              .doc(friendId)
+              .collection('events')
+              .doc(eventId)
+              .collection('gifts')
+              .doc(giftId)
+          .get();
       // Get the friend's device token from Firestore
       DocumentSnapshot friendDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -80,6 +89,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
         'category': category,
         'eventId': eventId,
         'eventName': eventName,
+        'description':giftDoc['description'],
         'friendName': friendDoc['fullName'],
         'pledgedAt': Timestamp.now(),
       });
@@ -87,7 +97,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gift pledged successfully!')),
       );
-      if (friendDeviceToken != null) {
+      if (friendDeviceToken != null && friendDoc['notificationsEnabled']) {
         // Send a notification to the friend
         await PushNotifications.SendNotificationToPledgedFriend(
           friendDeviceToken,
@@ -95,7 +105,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
           giftId,
           giftName,
           eventName,
-          userName ?? 'Unknown User',
+          userName,
         );
       }
     } catch (e) {
@@ -203,15 +213,35 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
                       color: isPledgedByMe ? Colors.grey : const Color(0xFFB03565),
                       decoration: isPledgedByMe ? TextDecoration.lineThrough : null,
                     ),
+                    softWrap: true, // Ensures text wraps within boundaries
+                    overflow: TextOverflow.ellipsis, // Adds ellipsis for long text
                   ),
-                  subtitle: Text(
-                    "Category: ${giftData['category'] ?? 'N/A'}",
-                    style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Category: ${giftData['category'] ?? 'N/A'}",
+                        style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
+                      ),
+                      Text(
+                        "Price: ${giftData['price'] ?? 'N/A'}",
+                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                      ),
+                      Text(
+                        "Status: ${giftData['status'] ?? 'Available'}",
+                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                      ),
+                      Text(
+                        "Description: ${giftData['description'] ?? 'No Description Available'}",
+                        style: const TextStyle(fontSize: 16, color: Color(0xFFB03565)),
+                        softWrap: true, // Ensure the description wraps
+                      ),
+                    ],
                   ),
                   trailing: isPledgedByMe
                       ? ElevatedButton(
                     onPressed: () => _unpledgeGift(giftId),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     child: const Text("Unpledge"),
                   )
                       : ElevatedButton(
@@ -223,6 +253,7 @@ class _FriendGiftListPageState extends State<FriendGiftListPage> {
               );
             },
           );
+
         },
       ),
     );

@@ -38,6 +38,19 @@ class _EditEventState extends State<EditEvent> {
     super.initState();
     _loadEventDetails();
   }
+  String determineEventStatus(DateTime eventDate) {
+    final currentDate = DateTime.now();
+    final eventEndDate = eventDate.add(const Duration(days: 1));
+
+    if (currentDate.isBefore(eventDate)) {
+      return 'Upcoming';
+    } else if (currentDate.isAfter(eventEndDate)) {
+      return 'Past';
+    } else {
+      return 'Current';
+    }
+  }
+
 
   /// Load the event details from Firestore
   Future<void> _loadEventDetails() async {
@@ -84,7 +97,9 @@ class _EditEventState extends State<EditEvent> {
             .collection('users')
             .doc(userId)
             .collection('events')
-            .doc(widget.eventId); // Access eventId passed through constructor
+            .doc(widget.eventId);
+
+        final eventStatus = determineEventStatus(eventDate!);
 
         await eventRef.update({
           'name': eventName,
@@ -92,6 +107,7 @@ class _EditEventState extends State<EditEvent> {
           'description': eventDescription,
           'date': eventDate,
           'category': selectedCategory,
+          'status': eventStatus, // Update status
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
@@ -111,6 +127,7 @@ class _EditEventState extends State<EditEvent> {
       );
     }
   }
+
 
   Future<void> _selectDate() async {
     final selectedDate = await showDatePicker(

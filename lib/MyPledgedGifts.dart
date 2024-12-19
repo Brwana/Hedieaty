@@ -67,8 +67,9 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Category: ${giftData['category']}"),
                       Text("Event: ${giftData['eventName']}"),
+                      Text("Category: ${giftData['category']}"),
+                      Text("Description: ${giftData['description']}"),
                       Text("Friend Name: ${giftData['friendName']}"),
                     ],
                   ),

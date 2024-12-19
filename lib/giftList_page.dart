@@ -15,6 +15,8 @@ class _GiftListPageState extends State<GiftListPage> {
   late String userId;
   late String eventId;
   String? eventName;
+  late DocumentSnapshot<Map<String, dynamic>> eventDoc;
+
 
   @override
   void initState() {
@@ -42,7 +44,7 @@ class _GiftListPageState extends State<GiftListPage> {
 
   Future<void> _fetchEventName() async {
     try {
-      final eventDoc = await FirebaseFirestore.instance
+    eventDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('events')
@@ -204,7 +206,11 @@ class _GiftListPageState extends State<GiftListPage> {
                           style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
                         ),
                         Text(
-                          "Status: $status",
+                              "Gift Status: $status",
+                          style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
+                        ),
+                        Text(
+                          "Event Status: ${eventDoc['status']}",
                           style: const TextStyle(fontSize: 18, color: Color(0xFFB03565)),
                         ),
                       ],

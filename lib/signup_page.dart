@@ -16,7 +16,8 @@ class _SignUpPageState extends State<SignUpPage> {
   String email = '';
   String password = '';
   String phoneNumber = '';
-  String pin = '';
+  // String pin = '';
+  bool notificationsEnabled=true;
   final DatabaseClass dbHelper = DatabaseClass();
 
   void _handleSignUp() async {
@@ -55,7 +56,8 @@ class _SignUpPageState extends State<SignUpPage> {
             'phoneNumber': phoneNumber,
             'password':password,
             'createdAt': FieldValue.serverTimestamp(),
-            'profileImage': 'asset/profile.jpg'
+            'profileImage': 'asset/profile.jpg',
+            'notificationsEnabled':notificationsEnabled
           });
           await dbHelper.insertData('''
                     INSERT INTO Users (ID, Name, Email, Password, PhoneNumber)

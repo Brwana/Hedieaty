@@ -28,18 +28,35 @@ class _CreateEventState extends State<CreateEvent> {
       _formKey.currentState!.save();
 
       try {
+        // Calculate the event status
+        final now = DateTime.now();
+        String eventStatus;
+
+        if (eventDate!.isBefore(now)) {
+          eventStatus = 'Past';
+        } else if (eventDate!.isAfter(now.add(const Duration(days: 1)))) {
+          eventStatus = 'Upcoming';
+        } else {
+          eventStatus = 'Current';
+        }
+
+        // Get the current user's ID
         final userId = FirebaseAuth.instance.currentUser!.uid;
+
+        // Reference to the user's events collection
         final userEventsRef = FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
             .collection('events'); // Save under the current user's events collection
 
+        // Save the event to Firestore
         await userEventsRef.add({
           'name': eventName,
           'location': eventLocation,
           'description': eventDescription,
           'date': eventDate,
           'category': selectedCategory,
+          'status': eventStatus, // Save the calculated status
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -59,6 +76,7 @@ class _CreateEventState extends State<CreateEvent> {
       );
     }
   }
+
 
   Future<void> _selectDate() async {
     final selectedDate = await showDatePicker(

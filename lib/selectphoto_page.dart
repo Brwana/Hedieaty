@@ -10,8 +10,12 @@ class SelectPhotoPage extends StatelessWidget {
     "asset/pp_4.jpg",
     "asset/pp_5.jpg",
     "asset/pp_6.jpg",
+    "asset/pp_7.jpg",
+    "asset/pp_8.jpg",
+    "asset/pp_9.jpg",
     "asset/novel_science_fiction.jpg",
     "asset/necklace.jpg",
+    "asset/smart_watch.jpg",
 
     // Add more image paths here
   ];

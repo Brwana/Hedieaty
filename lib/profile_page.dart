@@ -54,6 +54,67 @@ class _MyProfileState extends State<MyProfile> {
     }
   }
 
+  Future<void> _updateProfileImageForFriends(String newProfileImageUrl) async {
+    try {
+      final currentUserId = currentUser!.uid;
+
+      // Get all friends of the current user
+      final friendSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .get();
+
+      for (var friendDoc in friendSnapshot.docs) {
+        final friendId = friendDoc.id;
+
+        // Update the profile image for the current user in each friend's list
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(friendId)
+            .collection('friends')
+            .doc(currentUserId)
+            .update({
+          'profileImage': newProfileImageUrl,
+        });
+      }
+
+      print("Profile image updated for all friends!");
+    } catch (e) {
+      print("Error updating profile image for friends: $e");
+    }
+  }
+  Future<void> _updateNotificationForFriends(bool notificationsEnabled) async {
+    try {
+      final currentUserId = currentUser!.uid;
+
+      // Get all friends of the current user
+      final friendSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .get();
+
+      for (var friendDoc in friendSnapshot.docs) {
+        final friendId = friendDoc.id;
+
+        // Update the profile image for the current user in each friend's list
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(friendId)
+            .collection('friends')
+            .doc(currentUserId)
+            .update({
+          'notificationsEnabled': notificationsEnabled,
+        });
+      }
+
+      print("Profile image updated for all friends!");
+    } catch (e) {
+      print("Error updating profile image for friends: $e");
+    }
+  }
+
 
   // Update user data in Firestore
   Future<void> _updateFullName(String newName) async {
@@ -77,7 +138,72 @@ class _MyProfileState extends State<MyProfile> {
       print("Error updating Firestore: $e");
     }
   }
+  // Update password
+  Future<void> _updatePassword(String currentPassword, String newPassword) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user!.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential); // Reauthenticate with current password
+      await user.updatePassword(newPassword); // Update password in Firebase Auth
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'password': newPassword, // Update password in Firestore if necessary
+      });
+      print("Password updated successfully.");
+    } catch (e) {
+      print("Error updating password: $e");
+      _showErrorDialog("Current password is incorrect or update failed.");
+    }
+  }
 
+  // Edit Password
+  void _editPassword() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Password"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current Password'),
+              ),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New Password'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String currentPassword = currentPasswordController.text;
+                String newPassword = newPasswordController.text;
+                if (currentPassword.isNotEmpty && newPassword.isNotEmpty) {
+                  await _updatePassword(currentPassword, newPassword);
+                  Navigator.pop(context);
+                  _fetchUserData(); // Refresh the user data after update
+                } else {
+                  _showErrorDialog('Please fill out both fields.');
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   // Show edit dialog for name and phone number
   void _editFullName() {
@@ -193,7 +319,7 @@ class _MyProfileState extends State<MyProfile> {
           .collection('users')
           .doc(currentUser!.uid)
           .update({'profileImage': imageUrl});
-
+      await _updateProfileImageForFriends(imageUrl);
       print("Profile picture updated successfully.");
     } catch (e) {
       print("Error updating Firestore: $e");
@@ -214,6 +340,21 @@ class _MyProfileState extends State<MyProfile> {
         _signout();
     }
   }
+  Future<void> _updateNotificationSettings(bool value) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).update({
+        'notificationsEnabled': value,
+      });
+      setState(() {
+        notificationsEnabled = value;
+      });
+      await _updateNotificationForFriends(notificationsEnabled);
+      print("Notification settings updated.");
+    } catch (e) {
+      print("Error updating notification settings: $e");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +535,58 @@ class _MyProfileState extends State<MyProfile> {
                       ),
                     ),
                     SizedBox(height:16),
+                    // Password Input (as stars)
+                    Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                    children: [
+                    Expanded(
+                    child: TextField(
+                    controller: currentPasswordController,
+                    obscureText: true, // Hide password as stars
+                    decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    labelText: 'Password',
+                    ),
+                    readOnly: true, // Prevent editing
+                    ),
+                    ),
+                    IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _editPassword,
+                    ),
+                  ],
+                ),
+              ),
+                    SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Enable Notifications",
+                            style: TextStyle(fontSize: 16.0),
+                          ),
+                          Switch(
+                            value: notificationsEnabled,
+                            activeColor: Colors.pink, // Set the slider's active color to pink
+                            onChanged: (value) {
+                              _updateNotificationSettings(value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
                   ],
                 ),
               ),

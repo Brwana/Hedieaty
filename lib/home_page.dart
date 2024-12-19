@@ -49,12 +49,21 @@ class _HomePageState extends State<HomePage> {
 
       if (friendSnapshot.docs.isNotEmpty) {
         final friendDocId = friendSnapshot.docs.first.id;
+
+        // Remove the current user from the friend's "friends" subcollection
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(friendDocId)
+            .collection('friends')
+            .doc(currentUser!.uid)
+            .delete();
+
+        // Remove the friend from the current user's "friends" subcollection
         await friendsRef.doc(friendDocId).delete();
 
         setState(() {
           friends.removeWhere((friend) => friend['phoneNumber'] == phoneNumber);
-          filteredFriends.removeWhere(
-                  (friend) => friend['phoneNumber'] == phoneNumber);
+          filteredFriends.removeWhere((friend) => friend['phoneNumber'] == phoneNumber);
         });
 
         print('Friend deleted successfully!');
@@ -64,6 +73,7 @@ class _HomePageState extends State<HomePage> {
       _showErrorDialog('Failed to delete friend. Please try again.');
     }
   }
+
   void _addFriendManually() {
     String phoneNumber = '';
 
@@ -97,13 +107,11 @@ class _HomePageState extends State<HomePage> {
                         .get();
 
                     if (friendSnapshot.docs.isNotEmpty) {
-                      final friendData =
-                      friendSnapshot.docs.first.data() as Map<String, dynamic>;
+                      final friendData = friendSnapshot.docs.first.data() as Map<String, dynamic>;
                       final friendId = friendSnapshot.docs.first.id;
 
-                      // Fetch the current user's data
-                      DocumentSnapshot currentUserSnapshot = await FirebaseFirestore
-                          .instance
+                      // Fetch the current user's latest profile data
+                      DocumentSnapshot currentUserSnapshot = await FirebaseFirestore.instance
                           .collection('users')
                           .doc(currentUser!.uid)
                           .get();
@@ -120,6 +128,7 @@ class _HomePageState extends State<HomePage> {
                         'fullName': friendData['fullName'],
                         'phoneNumber': friendData['phoneNumber'],
                         'profileImage': friendData['profileImage'] ?? '',
+                        'notificationsEnabled':friendData['notificationsEnabled']?? true,
                         'eventCount': 0,
                       });
 
@@ -134,6 +143,7 @@ class _HomePageState extends State<HomePage> {
                         'fullName': currentUserData['fullName'] ?? 'Unknown',
                         'phoneNumber': currentUserData['phoneNumber'] ?? '',
                         'profileImage': currentUserData['profileImage'] ?? '',
+                        'notificationsEnabled':friendData['notificationsEnabled']?? true,
                         'eventCount': 0,
                       });
 
@@ -153,6 +163,7 @@ class _HomePageState extends State<HomePage> {
                   }
                 }
               },
+
               child: Text(
                 'Add',
                 style: TextStyle(color: Colors.pink),
