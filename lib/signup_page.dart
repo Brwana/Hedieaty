@@ -127,7 +127,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       backgroundColor: Colors.pink,
                       child: ClipOval(
                         child: Image.asset(
-                          'asset/signup.jpg',
+                          'asset/hedieaty.png',
                         ),
                       ),
                     ),

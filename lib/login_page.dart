@@ -171,7 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                     backgroundColor: Colors.blueAccent.shade100,
                     child: ClipOval(
                       child: Image.asset(
-                        'asset/signup.jpg',
+                        'asset/hedieaty.png',
                         fit: BoxFit.cover,
                       ),
                     ),

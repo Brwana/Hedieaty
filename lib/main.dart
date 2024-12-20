@@ -6,7 +6,6 @@ import 'package:hedieaty/profile_page.dart';
 import 'package:hedieaty/eventList_page.dart';
 import 'package:hedieaty/giftList_page.dart';
 import 'package:hedieaty/createGift_page.dart';
-import 'package:hedieaty/splash_screen.dart';
 import 'package:hedieaty/signup_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -112,9 +111,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: "Hedieaty",
       theme: ThemeClass.lightTheme,
-      initialRoute: '/Splash',
+      initialRoute: '/signup',
       routes: {
-        "/Splash":(context)=> SplashScreen(),
         '/home':(context)=>HomePage(),
         '/Profile':(context)=> MyProfile(),
         '/EventList':(context)=>EventListPage(),
