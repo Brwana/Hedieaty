@@ -78,10 +78,10 @@ class _LoginPageState extends State<LoginPage> {
 
         if (userDoc.exists) {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-          print('User Data: $userData');
+          // print('User Data: $userData');
 
           syncService.syncFirestoreToSQLite(user.uid);
-          print("sync completed successfully");
+          // print("sync completed successfully");
           await syncService.queryAndPrintTable('Users');
           await syncService.queryAndPrintTable('Friends');
           await syncService.queryAndPrintTable('Events');
@@ -95,6 +95,9 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       print('failed to login');
+      if (!mounted) return; // Exit early if the widget is unmounted.
+      _showError("Online login failed");
+
       print('Online login failed: $e');
       _showError(e.toString());
     }

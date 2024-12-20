@@ -115,6 +115,7 @@ class _CreateEventState extends State<CreateEvent> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
+                        // key: Key('Event Name'),
                         decoration: InputDecoration(
                           labelText: 'Event Name',
                           border: OutlineInputBorder(
@@ -133,6 +134,7 @@ class _CreateEventState extends State<CreateEvent> {
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
+                        // key: Key('Location'),
                         decoration: InputDecoration(
                           labelText: 'Location',
                           border: OutlineInputBorder(
@@ -151,6 +153,7 @@ class _CreateEventState extends State<CreateEvent> {
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
+                        // key: Key('Description'),
                         decoration: InputDecoration(
                           labelText: 'Description',
                           border: OutlineInputBorder(
@@ -172,6 +175,7 @@ class _CreateEventState extends State<CreateEvent> {
                       GestureDetector(
                         onTap: _selectDate,
                         child: TextFormField(
+                          // key: Key('Event Date'),
                           enabled: false,
                           decoration: InputDecoration(
                             labelText: 'Event Date',labelStyle: TextStyle(color: Color(0xFF4D4953),),
@@ -205,6 +209,7 @@ class _CreateEventState extends State<CreateEvent> {
 
                       const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
+                        key: Key('category'),
                         decoration: InputDecoration(
                           labelText: 'Category',
                           border: OutlineInputBorder(
@@ -212,8 +217,11 @@ class _CreateEventState extends State<CreateEvent> {
                           ),
                         ),
                         value: selectedCategory,
-                        items: categories.map((category) {
+                        items: categories.asMap().entries.map((entry)  {
+                          int index = entry.key;
+                          String category = entry.value;
                           return DropdownMenuItem(
+                            key: Key('categoryItem_$index'),
                             value: category,
                             child: Text(
                               category,

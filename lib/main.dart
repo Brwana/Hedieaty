@@ -112,7 +112,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: "Hedieaty",
       theme: ThemeClass.lightTheme,
-      initialRoute: '/login',
+      initialRoute: '/Splash',
       routes: {
         "/Splash":(context)=> SplashScreen(),
         '/home':(context)=>HomePage(),

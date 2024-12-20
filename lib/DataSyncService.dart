@@ -68,7 +68,7 @@ class DataSyncService {
           '${userId}'
         );
       ''');
-        print('Syncing event: ${doc.id} -> ${event['name']}');
+        // print('Syncing event: ${doc.id} -> ${event['name']}');
       }
 
       // 4. Sync Gifts
@@ -94,7 +94,7 @@ class DataSyncService {
             '${eventDoc.id}'
           );
         ''');
-          print('Syncing gift: ${giftDoc.id} -> ${gift['name']}');
+          // print('Syncing gift: ${giftDoc.id} -> ${gift['name']}');
 
         }
 
@@ -109,7 +109,7 @@ class DataSyncService {
 
   Future<void> queryAndPrintTable(String tableName) async {
     final result = await databaseHelper.readData('SELECT * FROM $tableName');
-    print('Table $tableName: $result');
+    // print('Table $tableName: $result');
   }
 
 

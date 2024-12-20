@@ -30,19 +30,19 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'asset/present.jpg', // Path to your image file
-              width: 150, // Adjust size as needed
-              height: 150,
+              'asset/Hedieaty.png', // Path to your image file
+              width: 300, // Adjust size as needed
+              height: 300,
             ),
-            SizedBox(height: 20), // Space between image and text
-            Text(
-              'Hedieaty',
-              style: TextStyle(
-                fontSize: 32, // Font size for the text
-                fontWeight: FontWeight.bold, // Make the text bold
-                color: Color(0xFF960944), // Set your desired text color
-              ),
-            ),
+            // SizedBox(height: 20), // Space between image and text
+            // Text(
+            //   'Hedieaty',
+            //   style: TextStyle(
+            //     fontSize: 32, // Font size for the text
+            //     fontWeight: FontWeight.bold, // Make the text bold
+            //     color: Color(0xFF960944), // Set your desired text color
+            //   ),
+            // ),
           ],
         ),
       ),
