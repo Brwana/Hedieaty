@@ -26,12 +26,12 @@ class _LoginPageState extends State<LoginPage> {
 
 
   Future<bool> _isOnline() async {
-      var connectivityResult = await Connectivity().checkConnectivity();
+    var connectivityResult = await Connectivity().checkConnectivity();
 
-      // Return true if the device is connected to WiFi, Mobile, or Ethernet
-      return connectivityResult == ConnectivityResult.wifi ||
-          connectivityResult == ConnectivityResult.mobile ||
-          connectivityResult == ConnectivityResult.ethernet;
+    // Return true if the device is connected to WiFi, Mobile, or Ethernet
+    return connectivityResult == ConnectivityResult.wifi ||
+        connectivityResult == ConnectivityResult.mobile ||
+        connectivityResult == ConnectivityResult.ethernet;
 
   }
 
@@ -87,11 +87,14 @@ class _LoginPageState extends State<LoginPage> {
           await syncService.queryAndPrintTable('Events');
           await syncService.queryAndPrintTable('Gifts');
           // Navigate to the home screen
+          print('Navigating to home...');
+
           Navigator.pushNamed(context, '/home');
         }
 
       }
     } catch (e) {
+      print('failed to login');
       print('Online login failed: $e');
       _showError(e.toString());
     }
@@ -184,6 +187,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: 30),
                 TextFormField(
+                  key: Key('emailField'),
                   decoration: InputDecoration(
                     labelText: 'Email',
                     border: OutlineInputBorder(
@@ -206,6 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: 16),
                 TextFormField(
+                  key: Key('passwordField'),
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
@@ -226,6 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: 30),
                 ElevatedButton(
+                  key: Key('loginButton'),
                   onPressed: _handleLogin,
                   style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(
